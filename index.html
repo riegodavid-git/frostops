@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FROSTOPS ERP v1.0.4</title>
+<!-- Progressive enhancement font. Falls back to system monospace offline. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   FROSTOPS ERP - "Paper Protocol" design system
+   ============================================================ */
+:root{
+  --bg:#f8f9fa; --surface:#ffffff; --surface-low:#f3f4f5; --surface-mid:#edeeef;
+  --surface-high:#e7e8e9; --surface-highest:#e1e3e4;
+  --text:#191c1d; --text-muted:#444653; --outline:#747684; --divider:#c4c5d5;
+  --primary:#002068; --primary-bright:#003399; --on-primary:#ffffff;
+  --primary-fixed:#dce1ff; --accent-light:#8aa4ff;
+  --error:#ba1a1a; --error-container:#ffdad6;
+  --ok:#1a7d3c;
+}
+html[data-theme="dark"]{
+  --bg:#0d1117; --surface:#161b22; --surface-low:#1c2128; --surface-mid:#21262d;
+  --surface-high:#262c34; --surface-highest:#2d333b;
+  --text:#e6edf3; --text-muted:#9aa4b2; --outline:#6e7681; --divider:#30363d;
+  --primary:#4d7cff; --primary-bright:#6a8dff; --on-primary:#0d1117;
+  --primary-fixed:#1b2b52; --accent-light:#8aa4ff;
+  --error:#ff6b6b; --error-container:#3a1414;
+  --ok:#3fb950;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+  font-size:13px; line-height:1.4;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+/* Subtle scanline overlay */
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:9998;
+  background:repeating-linear-gradient(to bottom, rgba(0,0,0,0.012) 0, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 3px);
+  opacity:0.6;
+}
+html[data-theme="dark"] body::after{
+  background:repeating-linear-gradient(to bottom, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+}
+button{font-family:inherit; font-size:inherit; cursor:pointer; color:inherit;}
+::-webkit-scrollbar{width:10px; height:10px;}
+::-webkit-scrollbar-track{background:var(--surface-low);}
+::-webkit-scrollbar-thumb{background:var(--outline); border:2px solid var(--surface-low);}
+
+.mono{font-variant-numeric:tabular-nums;}
+.num{font-variant-numeric:tabular-nums; text-align:right;}
+.uc{text-transform:uppercase; letter-spacing:0.08em;}
+.muted{color:var(--text-muted);}
+.err{color:var(--error);}
+.ok{color:var(--ok);}
+.blink{animation:blink 1.1s steps(1,end) infinite;}
+@keyframes blink{50%{opacity:0;}}
+
+/* ---------- App shell ---------- */
+#app{display:flex; flex-direction:column; height:100vh;}
+
+/* Top app bar */
+#topbar{
+  display:flex; align-items:center; gap:16px; padding:6px 12px;
+  background:var(--primary); color:var(--on-primary);
+  border-bottom:2px solid var(--divider); flex:0 0 auto; user-select:none;
+}
+#topbar .brand{font-weight:700; letter-spacing:0.1em; font-size:14px; white-space:nowrap;}
+#topbar .brand .dot{color:var(--accent-light);}
+#topbar .meta{font-size:11px; opacity:0.9; letter-spacing:0.06em; white-space:nowrap;}
+#topbar .spacer{flex:1;}
+#topbar .clock{font-variant-numeric:tabular-nums; font-size:12px; letter-spacing:0.06em;}
+#topbar .tbtn{
+  background:transparent; border:1px solid rgba(255,255,255,0.4); color:var(--on-primary);
+  padding:3px 8px; text-transform:uppercase; letter-spacing:0.08em; font-size:11px;
+}
+#topbar .tbtn:hover{background:rgba(255,255,255,0.15);}
+
+/* Nav tabs */
+#nav{
+  display:flex; gap:0; background:var(--surface-mid); border-bottom:1px solid var(--divider);
+  flex:0 0 auto; user-select:none;
+}
+#nav button{
+  background:transparent; border:0; border-right:1px solid var(--divider);
+  padding:8px 16px; text-transform:uppercase; letter-spacing:0.08em; font-size:11px;
+  color:var(--text-muted); border-bottom:2px solid transparent;
+}
+#nav button:hover{background:var(--surface-high); color:var(--text);}
+#nav button.active{color:var(--text); background:var(--surface); border-bottom:2px solid var(--primary); font-weight:700;}
+#nav .navkey{color:var(--outline); font-size:9px; margin-left:6px;}
+#nav .status-chip{margin-left:auto; align-self:center; padding-right:12px; font-size:11px; letter-spacing:0.06em; display:flex; gap:14px;}
+#nav .status-chip b{color:var(--primary-bright); font-weight:700;}
+
+/* Main region */
+#main{flex:1 1 auto; overflow:hidden; position:relative;}
+.view{position:absolute; inset:0; overflow:auto; padding:10px; display:none;}
+.view.active{display:block;}
+
+/* Footer */
+#footer{
+  display:flex; align-items:center; gap:18px; padding:4px 12px;
+  background:var(--surface-mid); border-top:2px solid var(--divider);
+  font-size:11px; letter-spacing:0.06em; color:var(--text-muted); flex:0 0 auto; user-select:none;
+}
+#footer .live{color:var(--ok); font-weight:700;}
+#footer .spacer{flex:1;}
+
+/* Panels */
+.panel{background:var(--surface); border:1px solid var(--divider); margin-bottom:8px;}
+.panel-h{
+  background:var(--surface-high); border-bottom:1px solid var(--divider);
+  padding:5px 8px; text-transform:uppercase; letter-spacing:0.09em; font-size:11px;
+  font-weight:700; display:flex; align-items:center; gap:8px;
+}
+.panel-h .sub{margin-left:auto; font-weight:400; color:var(--text-muted); font-size:10px;}
+.panel-b{padding:8px;}
+
+/* Operations 3-col grid */
+#view-ops .ops-grid{display:grid; grid-template-columns:280px 1fr 300px; gap:8px; height:100%;}
+@media (max-width:1100px){ #view-ops .ops-grid{grid-template-columns:240px 1fr 260px;} }
+.ops-col{display:flex; flex-direction:column; min-height:0;}
+.ops-col > .panel{display:flex; flex-direction:column; min-height:0;}
+.scroll{overflow:auto; min-height:0;}
+
+/* Queue tickets */
+.ticket{
+  border:1px solid var(--divider); border-left:4px solid transparent;
+  background:var(--surface-low); margin-bottom:6px; padding:6px 8px; cursor:pointer;
+}
+.ticket:hover{background:var(--surface-mid);}
+.ticket.sel{border-left:4px solid var(--primary); background:var(--surface-mid);}
+.ticket.vip{border-top:2px solid var(--error);}
+.ticket .thead{display:flex; justify-content:space-between; font-weight:700; letter-spacing:0.05em;}
+.ticket .tno{color:var(--primary-bright);}
+.ticket .vip-tag{background:var(--error); color:#fff; padding:0 4px; font-size:9px; letter-spacing:0.08em;}
+.ticket .torder{font-size:11px; color:var(--text-muted); margin:3px 0; line-height:1.35;}
+.pbar{height:8px; background:var(--surface-highest); border:1px solid var(--divider); position:relative; margin-top:3px; font-size:0;}
+.pbar > i{display:block; height:100%; background:var(--ok);}
+.pbar.warn > i{background:#c8930a;}
+.pbar.crit > i{background:var(--error);}
+.pbar-txt{font-size:10px; color:var(--text-muted); display:flex; justify-content:space-between; margin-top:1px;}
+
+/* Workstation sections */
+.ws-sec{border:1px solid var(--divider); margin-bottom:6px; background:var(--surface-low);}
+.ws-sec.focus{border-color:var(--primary); box-shadow:none; outline:1px solid var(--primary);}
+.ws-sec-h{background:var(--surface-mid); padding:4px 8px; font-size:11px; letter-spacing:0.08em; font-weight:700; display:flex; gap:8px; align-items:center;}
+.ws-sec-h .req{margin-left:auto; color:var(--text-muted); font-weight:400; font-size:10px;}
+.ws-sec-b{padding:6px 8px; display:flex; flex-wrap:wrap; gap:4px 14px;}
+.opt{display:flex; align-items:center; gap:5px; padding:2px 4px; cursor:pointer; user-select:none; font-size:12px;}
+.opt:hover{background:var(--surface-mid);}
+.opt.hi{background:var(--primary-fixed);}
+.opt.on{font-weight:700;}
+.opt.locked{opacity:0.4; cursor:not-allowed;}
+.opt.oos{color:var(--error); cursor:not-allowed;}
+.opt .mark{color:var(--primary-bright); font-weight:700; width:20px; display:inline-block;}
+.opt .oos-tag{font-size:9px; color:var(--error); letter-spacing:0.05em;}
+.opt .lk-tag{font-size:9px; color:var(--outline); letter-spacing:0.05em;}
+
+/* Visualizer */
+.viz{background:var(--surface-highest); border:1px solid var(--divider); padding:8px; white-space:pre; line-height:1.15; font-size:12px; text-align:center; min-height:150px; display:flex; align-items:center; justify-content:center;}
+.viz pre{margin:0;}
+
+/* Buttons */
+.btn{
+  background:var(--surface-high); border:1px solid var(--outline); color:var(--text);
+  padding:6px 12px; text-transform:uppercase; letter-spacing:0.08em; font-size:11px; font-weight:700;
+}
+.btn:hover{background:var(--surface-highest);}
+.btn.primary{background:var(--primary); color:var(--on-primary); border-color:var(--primary);}
+.btn.primary:hover{background:var(--primary-bright);}
+.btn.danger{background:var(--error-container); border-color:var(--error); color:var(--error);}
+.btn.wide{width:100%;}
+.btn:disabled{opacity:0.45; cursor:not-allowed;}
+.btn-row{display:flex; gap:6px; margin-top:6px;}
+
+/* Inventory bars */
+.inv-row{display:flex; align-items:center; gap:6px; padding:2px 0; font-size:11px;}
+.inv-row .nm{flex:0 0 110px; letter-spacing:0.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.inv-bar{flex:1; height:9px; background:var(--surface-highest); border:1px solid var(--divider); position:relative;}
+.inv-bar > i{display:block; height:100%; background:var(--primary);}
+.inv-bar.low > i{background:var(--error);}
+.inv-row .qn{flex:0 0 42px; text-align:right; font-variant-numeric:tabular-nums;}
+.inv-row.locked{opacity:0.4;}
+.inv-group-h{font-size:10px; letter-spacing:0.08em; color:var(--text-muted); text-transform:uppercase; margin:6px 0 2px; border-bottom:1px dotted var(--divider);}
+
+/* Activity log */
+.log{font-size:11px; line-height:1.45; white-space:pre-wrap; word-break:break-word;}
+.log .ln{color:var(--text-muted);}
+.log .ln b{color:var(--text);}
+.log .ln.good{color:var(--ok);}
+.log .ln.bad{color:var(--error);}
+.log .ln::before{content:"> "; color:var(--outline);}
+
+/* Procurement table */
+table.grid{width:100%; border-collapse:collapse; font-size:12px;}
+table.grid th, table.grid td{border:1px solid var(--divider); padding:5px 8px; text-align:left;}
+table.grid th{background:var(--surface-high); text-transform:uppercase; letter-spacing:0.07em; font-size:10px; font-weight:700;}
+table.grid td.num, table.grid th.num{text-align:right; font-variant-numeric:tabular-nums;}
+table.grid tr:hover td{background:var(--surface-low);}
+table.grid .code{color:var(--primary-bright); font-weight:700;}
+.proc-sec-h{background:var(--surface-mid); border:1px solid var(--divider); border-bottom:0; padding:6px 8px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; font-size:11px; margin-top:10px;}
+.buybtn{padding:3px 8px; font-size:10px; letter-spacing:0.06em; text-transform:uppercase; font-weight:700; border:1px solid var(--outline); background:var(--surface-high);}
+.buybtn:hover{background:var(--surface-highest);}
+.buybtn.owned{background:var(--surface-mid); border-color:var(--divider); color:var(--text-muted); cursor:default;}
+.buybtn.no{background:var(--error-container); border-color:var(--error); color:var(--error); cursor:not-allowed;}
+.capital-strip{display:flex; gap:20px; align-items:baseline; background:var(--surface-high); border:1px solid var(--divider); padding:8px 12px; margin-bottom:8px;}
+.capital-strip .big{font-size:22px; font-weight:700; color:var(--primary-bright); font-variant-numeric:tabular-nums;}
+
+/* Report */
+.banner{white-space:pre; font-size:12px; line-height:1.2; color:var(--primary-bright); margin-bottom:10px; overflow-x:auto;}
+.kpi-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:10px;}
+@media (max-width:900px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+.kpi{border:1px solid var(--divider); background:var(--surface-low); padding:8px 10px;}
+.kpi .k{font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);}
+.kpi .v{font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:3px;}
+.kpi .v.pos{color:var(--ok);} .kpi .v.neg{color:var(--error);}
+.chart{white-space:pre; font-size:12px; line-height:1.25; background:var(--surface-highest); border:1px solid var(--divider); padding:8px; overflow-x:auto;}
+
+/* Overlays */
+.overlay{position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; padding:20px;}
+.overlay.on{display:flex;}
+.modal{background:var(--surface); border:2px solid var(--primary); max-width:560px; width:100%; max-height:86vh; overflow:auto;}
+.modal-h{background:var(--primary); color:var(--on-primary); padding:8px 12px; text-transform:uppercase; letter-spacing:0.09em; font-weight:700; font-size:12px; display:flex;}
+.modal-h .x{margin-left:auto; cursor:pointer;}
+.modal-b{padding:12px 14px;}
+.modal-b h4{margin:10px 0 4px; text-transform:uppercase; letter-spacing:0.07em; font-size:11px; color:var(--primary-bright);}
+.modal-b .kv{display:grid; grid-template-columns:180px 1fr; gap:2px 10px; font-size:12px;}
+.modal-b .kv .k{color:var(--text-muted);}
+.event-modal .modal-h{background:var(--error);}
+.event-icon{font-size:11px; letter-spacing:0.08em; color:var(--error); font-weight:700; margin-bottom:6px; text-transform:uppercase;}
+
+/* Toast */
+#toast-wrap{position:fixed; top:70px; right:14px; z-index:10001; display:flex; flex-direction:column; gap:6px; pointer-events:none;}
+.toast{background:var(--surface); border:1px solid var(--primary); border-left:4px solid var(--primary); padding:6px 12px; font-size:11px; letter-spacing:0.05em; min-width:220px; animation:tin 0.2s ease;}
+.toast.good{border-color:var(--ok); border-left-color:var(--ok);}
+.toast.bad{border-color:var(--error); border-left-color:var(--error);}
+.toast .tt{font-weight:700; text-transform:uppercase; letter-spacing:0.08em; font-size:10px;}
+@keyframes tin{from{transform:translateX(20px);opacity:0;}to{transform:none;opacity:1;}}
+
+/* Boss key spreadsheet */
+#boss{position:fixed; inset:0; z-index:11000; background:#ffffff; color:#1a1a1a; display:none; flex-direction:column; font-size:12px;}
+#boss.on{display:flex;}
+#boss .ss-title{background:#217346; color:#fff; padding:4px 10px; font-size:12px; display:flex; align-items:center; gap:10px;}
+#boss .ss-title .app{font-weight:700;}
+#boss .ribbon{background:#f3f2f1; border-bottom:1px solid #d0cfce; display:flex; gap:0;}
+#boss .ribbon .tab{padding:5px 14px; font-size:12px; border-right:1px solid #e1dfdd; color:#444; text-transform:uppercase; letter-spacing:0.03em;}
+#boss .ribbon .tab.act{background:#fff; border-bottom:2px solid #217346; color:#217346; font-weight:700;}
+#boss .fbar{display:flex; align-items:center; gap:8px; background:#fff; border-bottom:1px solid #d0cfce; padding:3px 8px; font-size:12px;}
+#boss .fbar .cellref{border:1px solid #d0cfce; padding:2px 8px; min-width:56px; text-align:center; background:#fbfbfb;}
+#boss .fbar .fx{color:#888; font-style:italic;}
+#boss .fbar .formula{flex:1; color:#1a1a1a;}
+#boss .sswrap{flex:1; overflow:auto; background:#fff;}
+#boss table.ss{border-collapse:collapse; font-size:12px; width:100%;}
+#boss table.ss th, #boss table.ss td{border:1px solid #d9d9d9; padding:3px 8px; white-space:nowrap;}
+#boss table.ss th{background:#f3f2f1; color:#444; font-weight:400; text-align:center; position:sticky; top:0;}
+#boss table.ss td.rownum{background:#f3f2f1; text-align:center; color:#444; width:34px; position:sticky; left:0;}
+#boss table.ss td.n{text-align:right; font-variant-numeric:tabular-nums;}
+#boss table.ss td.sel{outline:2px solid #217346; outline-offset:-2px; background:#e8f5ee;}
+#boss table.ss td.neg{color:#c0392b;}
+#boss .ss-hint{background:#f3f2f1; border-top:1px solid #d0cfce; padding:4px 10px; font-size:11px; color:#666; text-align:center; letter-spacing:0.05em;}
+#boss .ss-tabs{background:#f3f2f1; border-top:1px solid #d0cfce; padding:2px 10px; font-size:11px; display:flex; gap:2px;}
+#boss .ss-tabs .sheet{padding:2px 12px; border:1px solid #d0cfce; border-bottom:0; background:#e6e6e6;}
+#boss .ss-tabs .sheet.act{background:#fff; font-weight:700; color:#217346;}
+
+/* Help table */
+.help-grid{display:grid; grid-template-columns:auto 1fr; gap:3px 14px; font-size:12px;}
+.help-grid kbd{background:var(--surface-high); border:1px solid var(--outline); padding:1px 6px; font-family:inherit; font-size:11px; white-space:nowrap;}
+.hint{font-size:10px; color:var(--text-muted); letter-spacing:0.04em;}
+.tag-key{background:var(--surface-high); border:1px solid var(--divider); padding:0 4px; font-size:9px; color:var(--text-muted);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== TOP APP BAR ===================== -->
+  <div id="topbar">
+    <span class="brand">FROSTOPS ERP <span class="dot">v1.0.4</span></span>
+    <span class="meta" id="tb-station">STATION: OPS-01 | SHIFT: --</span>
+    <span class="spacer"></span>
+    <span class="clock" id="tb-clock">--:--:--</span>
+    <button class="tbtn" id="tb-theme" title="Toggle theme (L)">[L] THEME</button>
+    <button class="tbtn" id="tb-mute" title="Toggle audio (M)">[M] AUDIO:ON</button>
+    <button class="tbtn" id="tb-help" title="Help (?)">[?] HELP</button>
+  </div>
+
+  <!-- ===================== NAV TABS ===================== -->
+  <div id="nav">
+    <button data-view="ops" class="active">OPERATIONS TERMINAL <span class="navkey">[O]</span></button>
+    <button data-view="proc">PROCUREMENT PORTAL <span class="navkey">[P]</span></button>
+    <button data-view="report">SHIFT REPORTS <span class="navkey">[R]</span></button>
+    <span class="status-chip">
+      <span>CAPITAL: <b id="chip-capital">$0</b></span>
+      <span>EFFICIENCY: <b id="chip-eff">0</b></span>
+      <span>CSAT: <b id="chip-csat">-----</b></span>
+      <span>SHIFT: <b id="chip-day">1</b></span>
+    </span>
+  </div>
+
+  <!-- ===================== MAIN VIEWS ===================== -->
+  <div id="main">
+
+    <!-- ---------- OPERATIONS ---------- -->
+    <div class="view active" id="view-ops">
+      <div class="ops-grid">
+
+        <!-- LEFT: Queue -->
+        <div class="ops-col">
+          <div class="panel" style="flex:1 1 auto;">
+            <div class="panel-h">ACTIVE ORDER QUEUE <span class="sub" id="q-count">0/3</span></div>
+            <div class="panel-b" style="flex:0 0 auto;">
+              <button class="btn primary wide" id="btn-summon">[[ SUMMON NEXT ]] <span class="tag-key">N</span></button>
+              <div class="hint" style="margin-top:5px;" id="q-status">AWAITING SHIFT START</div>
+            </div>
+            <div class="scroll" id="queue-list" style="padding:0 8px 8px; flex:1 1 auto;"></div>
+          </div>
+        </div>
+
+        <!-- CENTER: Workstation -->
+        <div class="ops-col">
+          <div class="panel" style="flex:1 1 auto;">
+            <div class="panel-h">WORKSTATION <span class="sub" id="ws-active">NO ACTIVE TICKET</span></div>
+            <div class="scroll" style="flex:1 1 auto;">
+              <div class="panel-b">
+
+                <div class="ws-sec" data-sec="1" id="sec-1">
+                  <div class="ws-sec-h">== [1] CONTAINER == <span class="req" id="req-1"></span></div>
+                  <div class="ws-sec-b" id="opts-container"></div>
+                </div>
+
+                <div class="ws-sec" data-sec="2" id="sec-2">
+                  <div class="ws-sec-h">== [2] SIZE == <span class="req" id="req-2"></span></div>
+                  <div class="ws-sec-b" id="opts-size"></div>
+                </div>
+
+                <div class="ws-sec" data-sec="3" id="sec-3">
+                  <div class="ws-sec-h">== [3] SCOOPS / FLAVOR == <span class="req" id="req-3"></span></div>
+                  <div class="ws-sec-b" id="opts-flavor"></div>
+                </div>
+
+                <div class="ws-sec" data-sec="4" id="sec-4">
+                  <div class="ws-sec-h">== [4] SAUCE == <span class="req" id="req-4"></span></div>
+                  <div class="ws-sec-b" id="opts-sauce"></div>
+                </div>
+
+                <div class="ws-sec" data-sec="5" id="sec-5">
+                  <div class="ws-sec-h">== [5] TOPPINGS == <span class="req" id="req-5"></span></div>
+                  <div class="ws-sec-b" id="opts-topping"></div>
+                </div>
+
+                <div class="ws-sec">
+                  <div class="ws-sec-h">[[ LIVE VISUALIZER ]] <span class="req" id="viz-status">IDLE</span></div>
+                  <div class="viz" id="visualizer"><pre>  AWAITING BUILD  </pre></div>
+                </div>
+
+                <div class="btn-row">
+                  <button class="btn danger" id="btn-clear">[ CLEAR ] <span class="tag-key">C</span></button>
+                  <button class="btn primary" id="btn-dispense" style="flex:1;">[[ DISPENSE / SERVE ]] <span class="tag-key">ENTER</span></button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Inventory + log -->
+        <div class="ops-col">
+          <div class="panel" style="flex:0 0 auto; max-height:52%;">
+            <div class="panel-h">INVENTORY STATUS <span class="sub">STOCK MGMT</span></div>
+            <div class="scroll panel-b" id="inv-list"></div>
+          </div>
+          <div class="panel" style="flex:1 1 auto;">
+            <div class="panel-h">ACTIVITY LOG <span class="sub">SYS.OUT</span></div>
+            <div class="scroll panel-b log" id="activity-log"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ---------- PROCUREMENT ---------- -->
+    <div class="view" id="view-proc">
+      <div class="capital-strip">
+        <div><div class="hint uc">Available Capital</div><div class="big" id="proc-capital">$0</div></div>
+        <div><div class="hint uc">Operational Efficiency</div><div class="big" id="proc-eff" style="font-size:16px;">0</div></div>
+        <div style="flex:1;"></div>
+        <div class="hint" style="max-width:340px; text-align:right;">PROCUREMENT PORTAL. Restock consumables and unlock assets. All purchases post immediately against CAPITAL.</div>
+      </div>
+      <div id="proc-restock"></div>
+      <div id="proc-upgrades"></div>
+    </div>
+
+    <!-- ---------- REPORTS ---------- -->
+    <div class="view" id="view-report">
+      <div id="report-body"></div>
+    </div>
+
+  </div>
+
+  <!-- ===================== FOOTER ===================== -->
+  <div id="footer">
+    <span><span class="live blink">[&#9679; SYSTEM_LIVE]</span></span>
+    <span id="ft-lat">LATENCY: 14ms</span>
+    <span id="ft-node">NODE: MNL-FROST-01</span>
+    <span class="spacer"></span>
+    <span id="ft-msg">READY</span>
+    <span id="ft-clock">--:--:--</span>
+  </div>
+</div>
+
+<!-- ===================== TOASTS ===================== -->
+<div id="toast-wrap"></div>
+
+<!-- ===================== GENERIC OVERLAY (events / help / confirm) ===================== -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+    <div class="modal-h"><span id="modal-title">MODAL</span><span class="x" id="modal-x">[X]</span></div>
+    <div class="modal-b" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ===================== BOSS KEY SPREADSHEET ===================== -->
+<div id="boss">
+  <div class="ss-title"><span class="app">PROJECT_ALPHA_DATA_VIEWER</span> <span>- Book1 - Corporate Finance Suite</span></div>
+  <div class="ribbon">
+    <span class="tab">FILE</span><span class="tab">INSERT</span><span class="tab">DATA</span>
+    <span class="tab act">FORMULAS</span><span class="tab">REVIEW</span><span class="tab">VIEW</span>
+  </div>
+  <div class="fbar">
+    <span class="cellref" id="boss-ref">A1</span>
+    <span class="fx">fx</span>
+    <span class="formula" id="boss-formula">=SUM(D2:D14)</span>
+  </div>
+  <div class="sswrap"><table class="ss" id="boss-table"></table></div>
+  <div class="ss-tabs">
+    <span class="sheet act">Q3_ACTUALS</span><span class="sheet">FORECAST</span><span class="sheet">HEADCOUNT</span><span class="sheet">+</span>
+  </div>
+  <div class="ss-hint">PRESS [ESC] OR [ALT+B] TO RESUME PRODUCTION OPERATIONS</div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   FROSTOPS ERP - game logic
+   Sections:
+     1. Data tables (ingredients, prices, upgrades, names)
+     2. State + save/load
+     3. Audio (WebAudio, synthesized)
+     4. Utility + logging + toasts
+     5. Render: inventory, queue, workstation, procurement, report
+     6. Gameplay: day loop, ticket gen, patience decay, scoring, serve
+     7. Random events
+     8. Input handling (keyboard + mouse), boss key, overlays
+     9. Boot
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. DATA TABLES
+   ------------------------------------------------------------ */
+const SAVE_KEY = "frostops_save_v1";
+
+// Containers
+const CONTAINERS = [
+  {id:"cone", name:"Cone", code:"CNT-CONE", unlocked:true},
+  {id:"cup",  name:"Cup",  code:"CNT-CUP",  unlocked:true}
+];
+
+// Sizes with base menu price
+const SIZES = [
+  {id:"small",  name:"Small",  code:"SZ-S", price:5,  unlockCost:0,   unlocked:true},
+  {id:"medium", name:"Medium", code:"SZ-M", price:8,  unlockCost:60,  unlocked:false},
+  {id:"large",  name:"Large",  code:"SZ-L", price:12, unlockCost:130, unlocked:false}
+];
+
+// Flavors
+const FLAVORS = [
+  {id:"vanilla",    name:"Vanilla",         code:"FLV-VAN", unlocked:true,  unlockCost:0},
+  {id:"chocolate",  name:"Chocolate",       code:"FLV-CHO", unlocked:true,  unlockCost:0},
+  {id:"strawberry", name:"Strawberry",      code:"FLV-STR", unlocked:true,  unlockCost:0},
+  {id:"mintchip",   name:"Mint Chip",       code:"FLV-MNT", unlocked:false, unlockCost:70},
+  {id:"cookiecream",name:"Cookies & Cream", code:"FLV-CKC", unlocked:false, unlockCost:80},
+  {id:"pistachio",  name:"Pistachio",       code:"FLV-PST", unlocked:false, unlockCost:95},
+  {id:"mango",      name:"Mango",           code:"FLV-MNG", unlocked:false, unlockCost:90},
+  {id:"butterpecan",name:"Butter Pecan",    code:"FLV-BPC", unlocked:false, unlockCost:110}
+];
+
+// Sauces (None is implicit)
+const SAUCES = [
+  {id:"fudge",   name:"Chocolate Fudge",      code:"SCE-FDG", unlocked:false, unlockCost:45},
+  {id:"caramel", name:"Caramel",              code:"SCE-CRM", unlocked:false, unlockCost:45},
+  {id:"strawsyr",name:"Strawberry Syrup",     code:"SCE-STS", unlocked:false, unlockCost:50},
+  {id:"rainbow", name:"Rainbow Sprinkle Sauce",code:"SCE-RBW",unlocked:false, unlockCost:60}
+];
+
+// Toppings
+const TOPPINGS = [
+  {id:"sprinkles", name:"Sprinkles",       code:"TOP-SPK", unlocked:true,  unlockCost:0},
+  {id:"whip",      name:"Whipped Cream",   code:"TOP-WHP", unlocked:false, unlockCost:40},
+  {id:"cherry",    name:"Cherry",          code:"TOP-CHR", unlocked:false, unlockCost:35},
+  {id:"nuts",      name:"Nuts",            code:"TOP-NUT", unlocked:false, unlockCost:50},
+  {id:"cookiecr",  name:"Cookie Crumbles", code:"TOP-CKM", unlocked:false, unlockCost:55}
+];
+
+// Restock unit info: cost per pack, units per pack, max cap
+const RESTOCK = {
+  // consumable id -> {label, code, packUnits, packCost, cap, kind}
+};
+function buildRestockTable(){
+  CONTAINERS.forEach(c=>RESTOCK["c_"+c.id]={label:c.name+" (container)", code:c.code, packUnits:20, packCost:8,  cap:80, kind:"container", ref:c.id});
+  FLAVORS.forEach(f=>RESTOCK["f_"+f.id]={label:f.name+" (scoops)", code:f.code, packUnits:25, packCost:12, cap:100, kind:"flavor", ref:f.id});
+  SAUCES.forEach(s=>RESTOCK["s_"+s.id]={label:s.name, code:s.code, packUnits:20, packCost:10, cap:80, kind:"sauce", ref:s.id});
+  TOPPINGS.forEach(t=>RESTOCK["t_"+t.id]={label:t.name, code:t.code, packUnits:25, packCost:9,  cap:100, kind:"topping", ref:t.id});
+}
+buildRestockTable();
+
+// Upgrades (one-time unlocks & capability boosts)
+const UPGRADES = [
+  {id:"size_medium", code:"UPG-SZM", desc:"UNLOCK: Medium size (higher menu price)", cost:60},
+  {id:"size_large",  code:"UPG-SZL", desc:"UNLOCK: Large size (premium menu price)", cost:130, req:"size_medium"},
+  {id:"flv_mintchip",code:"UPG-FMC", desc:"UNLOCK: Mint Chip flavor", cost:70},
+  {id:"flv_cookiecream",code:"UPG-FCC", desc:"UNLOCK: Cookies & Cream flavor", cost:80},
+  {id:"flv_pistachio",code:"UPG-FPS", desc:"UNLOCK: Pistachio flavor", cost:95},
+  {id:"flv_mango",   code:"UPG-FMG", desc:"UNLOCK: Mango flavor", cost:90},
+  {id:"flv_butterpecan",code:"UPG-FBP", desc:"UNLOCK: Butter Pecan flavor", cost:110},
+  {id:"sce_fudge",   code:"UPG-SFD", desc:"UNLOCK: Chocolate Fudge sauce", cost:45},
+  {id:"sce_caramel", code:"UPG-SCR", desc:"UNLOCK: Caramel sauce", cost:45},
+  {id:"sce_strawsyr",code:"UPG-SSS", desc:"UNLOCK: Strawberry Syrup sauce", cost:50},
+  {id:"sce_rainbow", code:"UPG-SRB", desc:"UNLOCK: Rainbow Sprinkle Sauce", cost:60},
+  {id:"top_whip",    code:"UPG-TWH", desc:"UNLOCK: Whipped Cream topping", cost:40},
+  {id:"top_cherry",  code:"UPG-TCH", desc:"UNLOCK: Cherry topping", cost:35},
+  {id:"top_nuts",    code:"UPG-TNT", desc:"UNLOCK: Nuts topping", cost:50},
+  {id:"top_cookiecr",code:"UPG-TCC", desc:"UNLOCK: Cookie Crumbles topping", cost:55},
+  {id:"dispense_fast",code:"UPG-DSP", desc:"PROCESS: Faster dispensing (quicker serve, +speed bonus)", cost:120},
+  {id:"queue_cap",   code:"UPG-QCP", desc:"CAPACITY: +1 order queue slot (max 6)", cost:90, repeatable:true, maxLevel:3},
+  {id:"ambiance",    code:"UPG-AMB", desc:"AMBIANCE: +patience buffer for all tickets", cost:100, repeatable:true, maxLevel:3},
+  {id:"marketing",   code:"UPG-MKT", desc:"MARKETING: +2 tickets per shift (more revenue)", cost:110, repeatable:true, maxLevel:3},
+  {id:"assistant",   code:"UPG-AST", desc:"STAFFING: Hire assistant (slows patience decay 15%)", cost:150, repeatable:true, maxLevel:2}
+];
+
+// Procedural customer names
+const FIRST_NAMES = ["Alex","Jordan","Sam","Riley","Casey","Taylor","Morgan","Jamie","Drew","Quinn","Avery","Parker","Reese","Skyler","Rowan","Sage","Blake","Cameron","Devon","Emerson","Finley","Harper","Kai","Lane","Micah","Noel","Oakley","Perry","Remy","Shay"];
+const LAST_INITIAL = ["A.","B.","C.","D.","E.","F.","G.","H.","J.","K.","L.","M.","N.","P.","R.","S.","T.","V.","W."];
+
+/* ------------------------------------------------------------
+   2. STATE + SAVE / LOAD
+   ------------------------------------------------------------ */
+let S = null; // main state object
+
+function defaultState(){
+  const st = {
+    version:1,
+    day:1,
+    capital:200,
+    efficiency:0,           // operational efficiency (XP-like)
+    effMilestone:0,         // last milestone crossed
+    csat:5.0,               // customer satisfaction 0-5
+    muted:false,
+    theme:"light",
+    // unlocked sets
+    unlocked:{
+      size:{small:true, medium:false, large:false},
+      flavor:{vanilla:true, chocolate:true, strawberry:true, mintchip:false, cookiecream:false, pistachio:false, mango:false, butterpecan:false},
+      sauce:{fudge:false, caramel:false, strawsyr:false, rainbow:false},
+      topping:{sprinkles:true, whip:false, cherry:false, nuts:false, cookiecr:false}
+    },
+    // repeatable upgrade levels
+    upg:{ dispense_fast:false, queue_cap:0, ambiance:0, marketing:0, assistant:0 },
+    // inventory quantities keyed like restock keys
+    inv:{},
+    // history of shifts
+    history:[],
+    // in-progress day snapshot for resume
+    dayState:null
+  };
+  // seed inventory
+  Object.keys(RESTOCK).forEach(k=>{
+    const r = RESTOCK[k];
+    // start with modest stock for default-unlocked, 0 for locked
+    let unlocked = isRefUnlockedRaw(st, r.kind, r.ref);
+    st.inv[k] = unlocked ? Math.round(r.cap*0.6) : 0;
+  });
+  return st;
+}
+
+function isRefUnlockedRaw(st, kind, ref){
+  if(kind==="container") return true; // containers always available
+  if(kind==="flavor") return !!st.unlocked.flavor[ref];
+  if(kind==="sauce") return !!st.unlocked.sauce[ref];
+  if(kind==="topping") return !!st.unlocked.topping[ref];
+  return false;
+}
+function isRefUnlocked(kind, ref){ return isRefUnlockedRaw(S, kind, ref); }
+
+function saveGame(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify(S));
+  }catch(e){ /* storage may be blocked; fail silently */ }
+}
+function loadGame(){
+  let raw=null;
+  try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){ raw=null; }
+  if(!raw){ S = defaultState(); return false; }
+  try{
+    const parsed = JSON.parse(raw);
+    if(!parsed || typeof parsed!=="object" || typeof parsed.capital!=="number"){
+      throw new Error("bad save");
+    }
+    // merge onto default to be resilient to schema drift
+    S = deepMerge(defaultState(), parsed);
+    return true;
+  }catch(e){
+    S = defaultState();
+    return false;
+  }
+}
+function deepMerge(base, over){
+  if(Array.isArray(over)) return over.slice();
+  if(over && typeof over==="object"){
+    const out = Array.isArray(base)? base.slice() : Object.assign({}, base);
+    Object.keys(over).forEach(k=>{
+      if(over[k] && typeof over[k]==="object" && !Array.isArray(over[k]) && base && typeof base[k]==="object" && !Array.isArray(base[k])){
+        out[k] = deepMerge(base[k], over[k]);
+      } else {
+        out[k] = over[k];
+      }
+    });
+    return out;
+  }
+  return over===undefined ? base : over;
+}
+
+/* ------------------------------------------------------------
+   3. AUDIO (synthesized, WebAudio)
+   ------------------------------------------------------------ */
+let audioCtx = null;
+function initAudio(){
+  if(audioCtx) return;
+  try{
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(AC) audioCtx = new AC();
+  }catch(e){ audioCtx=null; }
+}
+function beep(freq, dur, type, vol){
+  if(S && S.muted) return;
+  if(!audioCtx) return;
+  try{
+    if(audioCtx.state==="suspended") audioCtx.resume();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type||"square";
+    o.frequency.value = freq;
+    g.gain.value = 0.0001;
+    o.connect(g); g.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    const v = (vol||0.05);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(v, now+0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+    o.start(now); o.stop(now+dur+0.02);
+  }catch(e){/* fail silently */}
+}
+function sfxClick(){ beep(660, 0.04, "square", 0.03); }
+function sfxNav(){ beep(440, 0.05, "triangle", 0.035); }
+function sfxServe(){ // receipt printer style
+  beep(880,0.03,"square",0.04);
+  setTimeout(()=>beep(1200,0.03,"square",0.035),60);
+  setTimeout(()=>beep(1500,0.05,"square",0.04),120);
+}
+function sfxEvent(){ beep(320,0.12,"sawtooth",0.045); setTimeout(()=>beep(480,0.10,"sawtooth",0.04),120); }
+function sfxBad(){ beep(200,0.18,"sawtooth",0.05); }
+function sfxGood(){ beep(720,0.06,"triangle",0.04); setTimeout(()=>beep(960,0.08,"triangle",0.04),70); }
+
+/* ------------------------------------------------------------
+   4. UTILITY + LOG + TOAST
+   ------------------------------------------------------------ */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+function rand(n){ return Math.floor(Math.random()*n); }
+function pick(arr){ return arr[rand(arr.length)]; }
+function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+function money(n){ return "$"+ (Math.round(n*100)/100).toLocaleString(); }
+function stars(v){
+  const full = Math.round(clamp(v,0,5));
+  return "★".repeat(full) + "☆".repeat(5-full);
+}
+function nowClock(){
+  const d = new Date();
+  const p = x=> String(x).padStart(2,"0");
+  return p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds());
+}
+function shiftLabel(day){
+  // fake business-y shift code
+  const base = 2000 + day*13;
+  return "S-"+base;
+}
+
+let logLines = [];
+function logMsg(txt, cls){
+  logLines.push({t:txt, c:cls||""});
+  if(logLines.length>120) logLines.shift();
+  const el = $("#activity-log");
+  if(el){
+    const d = document.createElement("div");
+    d.className = "ln "+(cls||"");
+    d.innerHTML = txt;
+    el.appendChild(d);
+    while(el.children.length>120) el.removeChild(el.firstChild);
+    el.scrollTop = el.scrollHeight;
+  }
+  $("#ft-msg").textContent = txt.replace(/<[^>]+>/g,"").slice(0,60);
+}
+function toast(title, msg, cls){
+  const w = $("#toast-wrap");
+  const t = document.createElement("div");
+  t.className = "toast "+(cls||"");
+  t.innerHTML = "<div class='tt'>"+title+"</div><div>"+msg+"</div>";
+  w.appendChild(t);
+  setTimeout(()=>{ t.style.transition="opacity .3s"; t.style.opacity="0"; setTimeout(()=>t.remove(),300); }, 3200);
+}
+
+/* ------------------------------------------------------------
+   5b. LOOKUPS
+   ------------------------------------------------------------ */
+function flavorName(id){ const f=FLAVORS.find(x=>x.id===id); return f?f.name:id; }
+function sauceName(id){ if(id==="none"||!id) return "None"; const s=SAUCES.find(x=>x.id===id); return s?s.name:id; }
+function toppingName(id){ const t=TOPPINGS.find(x=>x.id===id); return t?t.name:id; }
+function sizeName(id){ const s=SIZES.find(x=>x.id===id); return s?s.name:id; }
+function containerName(id){ const c=CONTAINERS.find(x=>x.id===id); return c?c.name:id; }
+function sizePrice(id){ const s=SIZES.find(x=>x.id===id); return s?s.price:5; }
+
+// inventory helpers
+function invKey(kind, ref){ return kind.charAt(0)+"_"+ref; }
+function invQty(kind, ref){ return S.inv[invKey(kind,ref)] || 0; }
+function invHas(kind, ref, n){ return invQty(kind,ref) >= (n||1); }
+function invDeduct(kind, ref, n){
+  const k = invKey(kind,ref);
+  S.inv[k] = Math.max(0, (S.inv[k]||0) - (n||1));
+}
+
+/* ------------------------------------------------------------
+   6. DAY / TICKET STATE (runtime, some persisted in S.dayState)
+   ------------------------------------------------------------ */
+let day = null; // active day runtime
+
+function newDayState(){
+  const marketing = S.upg.marketing||0;
+  const baseTickets = 4 + Math.floor((S.day-1)*1.2) + marketing*2;
+  const totalTickets = clamp(baseTickets, 4, 30);
+  return {
+    dayNo: S.day,
+    totalTickets: totalTickets,
+    spawned: 0,          // tickets created so far
+    completed: 0,        // served (any accuracy)
+    servedGood: 0,
+    lost: 0,             // walked away
+    revenue: 0,
+    expenses: 0,         // rent + procurement during day
+    accSum: 0,           // accuracy sum (for avg)
+    accCount: 0,
+    timeSum: 0,          // completion time sum (seconds of patience used)
+    csatSamples: [],     // per-hour satisfaction snapshots
+    nextTicketNo: 2081 + (S.day-1)*40 + rand(9),
+    queue: [],           // active tickets
+    activeId: null,      // selected ticket id
+    build: emptyBuild(),
+    focusSec: 3,
+    hiIndex: {1:0,2:0,3:0,4:0,5:0}, // highlighted option index per section
+    spawnTimer: 0,       // ms accumulator
+    spawnInterval: 4200, // ms between arrivals
+    event: null,         // active event object
+    eventWindow: 0,      // ms remaining for windowed events
+    tipMult: 1,
+    dispenseSlow: false,
+    elapsed: 0,          // ms of shift
+    over: false
+  };
+}
+function emptyBuild(){
+  return { container:null, size:null, flavors:[], sauce:"none", toppings:[] };
+}
+
+/* ------------------------------------------------------------
+   Ticket generation
+   ------------------------------------------------------------ */
+function unlockedList(kind){
+  if(kind==="size") return SIZES.filter(s=>S.unlocked.size[s.id]);
+  if(kind==="flavor") return FLAVORS.filter(f=>S.unlocked.flavor[f.id]);
+  if(kind==="sauce") return SAUCES.filter(s=>S.unlocked.sauce[s.id]);
+  if(kind==="topping") return TOPPINGS.filter(t=>S.unlocked.topping[t.id]);
+  if(kind==="container") return CONTAINERS.slice();
+  return [];
+}
+
+function genOrder(opts){
+  opts = opts || {};
+  const d = S.day;
+  const container = pick(unlockedList("container")).id;
+  const sizes = unlockedList("size");
+  const size = pick(sizes).id;
+
+  // scoop count grows with day
+  let maxScoops = 1;
+  if(d>=2) maxScoops = 2;
+  if(d>=4) maxScoops = 3;
+  if(opts.bulk) maxScoops = Math.min(3, maxScoops)+1; // big order
+  const nScoops = opts.bulk ? clamp(maxScoops,2,4) : (1 + rand(maxScoops));
+
+  const flvPool = unlockedList("flavor");
+  const flavors = [];
+  for(let i=0;i<nScoops;i++){ flavors.push(pick(flvPool).id); }
+
+  // sauce: only if any unlocked & difficulty allows
+  let sauce = "none";
+  const sPool = unlockedList("sauce");
+  if(sPool.length && d>=3 && Math.random() < (opts.vip?0.85:0.5)){
+    sauce = pick(sPool).id;
+  }
+
+  // toppings
+  const tPool = unlockedList("topping");
+  const toppings = [];
+  if(tPool.length){
+    let tChance = d>=2 ? 0.55 : 0.3;
+    if(opts.vip) tChance = 0.9;
+    if(Math.random() < tChance){
+      const maxT = Math.min(tPool.length, d>=4?3:2);
+      const nT = 1 + rand(maxT);
+      const shuffled = tPool.slice().sort(()=>Math.random()-0.5);
+      for(let i=0;i<nT;i++) toppings.push(shuffled[i].id);
+    }
+  }
+
+  return {container, size, flavors, sauce, toppings};
+}
+
+function makeTicket(opts){
+  opts = opts||{};
+  day.nextTicketNo += 1 + rand(2);
+  const order = genOrder(opts);
+  // patience scales: harder later, +ambiance buffer, VIP a bit less
+  const ambiance = (S.upg.ambiance||0);
+  let basePatience = 40 - (S.day-1)*1.6;
+  basePatience = clamp(basePatience, 18, 40);
+  basePatience += ambiance*6;
+  if(opts.vip) basePatience -= 4;
+  if(opts.bulk) basePatience += 8;
+  const maxP = basePatience * 1000; // ms
+  const complexity = order.flavors.length + order.toppings.length + (order.sauce!=="none"?1:0);
+  const t = {
+    id: "TK"+(day.nextTicketNo)+"_"+rand(9999),
+    no: day.nextTicketNo,
+    name: pick(FIRST_NAMES)+" "+pick(LAST_INITIAL),
+    order: order,
+    maxP: maxP,
+    p: maxP,             // remaining patience (ms)
+    vip: !!opts.vip,
+    bulk: !!opts.bulk,
+    complexity: complexity,
+    spawnedAt: day.elapsed
+  };
+  return t;
+}
+
+function queueCap(){ return 3 + (S.upg.queue_cap||0); }
+
+function spawnTicket(opts){
+  if(day.queue.length >= queueCap()) return false;
+  if(day.spawned >= day.totalTickets) return false;
+  const t = makeTicket(opts);
+  day.queue.push(t);
+  day.spawned++;
+  if(!day.activeId) selectTicket(t.id);
+  const vt = t.vip? " <b class='err'>[VIP/INSPECTION]</b>":"";
+  logMsg("TICKET #"+t.no+" RECEIVED"+vt, t.vip?"bad":"");
+  renderQueue();
+  updateChips();
+  return true;
+}
+
+function selectTicket(id){
+  day.activeId = id;
+  // reset highlight indices to sensible spots
+  day.hiIndex = {1:0,2:0,3:0,4:0,5:0};
+  renderQueue();
+  renderWorkstation();
+}
+
+function activeTicket(){ return day.queue.find(t=>t.id===day.activeId) || null; }
+
+/* ------------------------------------------------------------
+   7. RENDER: chips / inventory / queue
+   ------------------------------------------------------------ */
+function updateChips(){
+  $("#chip-capital").textContent = money(S.capital);
+  $("#chip-eff").textContent = Math.round(S.efficiency);
+  $("#chip-csat").textContent = stars(S.csat);
+  $("#chip-day").textContent = S.day + (day && !day.over ? " ["+day.completed+"/"+day.totalTickets+"]" : "");
+  $("#proc-capital").textContent = money(S.capital);
+  $("#proc-eff").textContent = Math.round(S.efficiency);
+  $("#tb-station").textContent = "STATION: OPS-01 | SHIFT: "+shiftLabel(S.day);
+}
+
+function renderInventory(){
+  const el = $("#inv-list");
+  if(!el) return;
+  let html = "";
+  const groups = [
+    {t:"CONTAINERS", kind:"container", list:CONTAINERS},
+    {t:"FLAVORS", kind:"flavor", list:FLAVORS},
+    {t:"SAUCES", kind:"sauce", list:SAUCES},
+    {t:"TOPPINGS", kind:"topping", list:TOPPINGS}
+  ];
+  groups.forEach(g=>{
+    html += "<div class='inv-group-h'>"+g.t+"</div>";
+    g.list.forEach(item=>{
+      const unlocked = g.kind==="container"? true : isRefUnlocked(g.kind, item.id);
+      const k = invKey(g.kind, item.id);
+      const r = RESTOCK[k];
+      const q = S.inv[k]||0;
+      const cap = r? r.cap : 100;
+      const pct = clamp(q/cap*100, 0, 100);
+      const low = q <= cap*0.2;
+      if(!unlocked){
+        html += "<div class='inv-row locked'><span class='nm'>"+item.name+"</span>"+
+          "<span class='inv-bar'></span><span class='qn muted'>LOCK</span></div>";
+      } else {
+        html += "<div class='inv-row'><span class='nm'>"+item.name+"</span>"+
+          "<span class='inv-bar"+(low?" low":"")+"'><i style='width:"+pct+"%'></i></span>"+
+          "<span class='qn"+(low?" err":"")+"'>"+q+"</span></div>";
+      }
+    });
+  });
+  el.innerHTML = html;
+}
+
+function patienceClass(frac){
+  if(frac<=0.25) return "crit";
+  if(frac<=0.5) return "warn";
+  return "";
+}
+function orderSummary(o){
+  let parts = [];
+  parts.push(containerName(o.container).toUpperCase()+"/"+sizeName(o.size).toUpperCase());
+  parts.push(o.flavors.map(flavorName).join("+"));
+  if(o.sauce!=="none") parts.push("SCE:"+sauceName(o.sauce));
+  if(o.toppings.length) parts.push("TOP:"+o.toppings.map(toppingName).join(","));
+  return parts.join(" | ");
+}
+
+function renderQueue(){
+  const el = $("#queue-list");
+  if(!el) return;
+  if(!day || day.queue.length===0){
+    el.innerHTML = "<div class='hint' style='padding:8px;'>NO ACTIVE TICKETS. PRESS [N] TO SUMMON.</div>";
+  } else {
+    let html = "";
+    day.queue.forEach(t=>{
+      const frac = t.p / t.maxP;
+      const pcls = patienceClass(frac);
+      const pct = Math.round(frac*100);
+      html += "<div class='ticket "+(t.id===day.activeId?"sel":"")+(t.vip?" vip":"")+"' data-id='"+t.id+"'>"+
+        "<div class='thead'><span class='tno'>#"+t.no+"</span>"+
+        (t.vip?"<span class='vip-tag'>VIP</span>":"")+
+        "<span class='muted' style='font-weight:400;font-size:10px;'>"+t.name+"</span></div>"+
+        "<div class='torder'>"+orderSummary(t.order)+"</div>"+
+        "<div class='pbar "+pcls+"'><i style='width:"+pct+"%'></i></div>"+
+        "<div class='pbar-txt'><span>PATIENCE</span><span>"+pct+"%</span></div>"+
+        "</div>";
+    });
+    el.innerHTML = html;
+    el.querySelectorAll(".ticket").forEach(node=>{
+      node.addEventListener("click", ()=>{ sfxClick(); selectTicket(node.dataset.id); });
+    });
+  }
+  $("#q-count").textContent = (day?day.queue.length:0)+"/"+queueCap();
+  if(day && !day.over){
+    const remaining = day.totalTickets - day.completed - day.lost;
+    $("#q-status").textContent = "SHIFT "+shiftLabel(S.day)+" | REMAINING: "+remaining+" | SPAWNED "+day.spawned+"/"+day.totalTickets;
+  }
+}
+
+/* Lightweight patience-only update for smooth bars without full rebuild */
+function updateQueueBars(){
+  const el = $("#queue-list");
+  if(!el || !day) return;
+  el.querySelectorAll(".ticket").forEach(node=>{
+    const t = day.queue.find(x=>x.id===node.dataset.id);
+    if(!t) return;
+    const frac = clamp(t.p/t.maxP,0,1);
+    const pct = Math.round(frac*100);
+    const bar = node.querySelector(".pbar");
+    const fill = node.querySelector(".pbar > i");
+    if(fill) fill.style.width = pct+"%";
+    if(bar){ bar.className = "pbar "+patienceClass(frac); }
+    const txt = node.querySelector(".pbar-txt span:last-child");
+    if(txt) txt.textContent = pct+"%";
+  });
+}
+
+/* ------------------------------------------------------------
+   8. RENDER: WORKSTATION (build configurator)
+   ------------------------------------------------------------ */
+function renderWorkstation(){
+  const t = activeTicket();
+  $("#ws-active").textContent = t ? ("TICKET #"+t.no+" - "+t.name+(t.vip?" [VIP]":"")) : "NO ACTIVE TICKET";
+
+  // requirement hints
+  if(t){
+    $("#req-1").textContent = "REQ: "+containerName(t.order.container).toUpperCase();
+    $("#req-2").textContent = "REQ: "+sizeName(t.order.size).toUpperCase();
+    $("#req-3").textContent = "REQ: "+t.order.flavors.length+" SCOOP(S)";
+    $("#req-4").textContent = "REQ: "+sauceName(t.order.sauce).toUpperCase();
+    $("#req-5").textContent = "REQ: "+(t.order.toppings.length? t.order.toppings.length+" ITEM(S)":"NONE");
+  } else {
+    ["#req-1","#req-2","#req-3","#req-4","#req-5"].forEach(s=>$(s).textContent="");
+  }
+
+  const b = day.build;
+
+  // Section 1: Container (radio)
+  renderRadioSection("opts-container", CONTAINERS.map((c,i)=>({
+    id:c.id, label:c.name, unlocked:true,
+    oos: !invHas("container", c.id, 1),
+    on: b.container===c.id
+  })), 1, (id)=>{ pickContainer(id); });
+
+  // Section 2: Size (radio, only unlocked)
+  renderRadioSection("opts-size", SIZES.map(s=>({
+    id:s.id, label:s.name+" ("+money(s.price)+")",
+    unlocked:S.unlocked.size[s.id], oos:false, on:b.size===s.id
+  })), 2, (id)=>{ pickSize(id); });
+
+  // Section 3: Flavors (add scoops)
+  renderFlavorSection();
+
+  // Section 4: Sauce (radio incl None)
+  const sauceOpts = [{id:"none", label:"None", unlocked:true, oos:false, on:b.sauce==="none"}]
+    .concat(SAUCES.map(s=>({
+      id:s.id, label:s.name, unlocked:S.unlocked.sauce[s.id],
+      oos:!invHas("sauce", s.id, 1), on:b.sauce===s.id
+    })));
+  renderRadioSection("opts-sauce", sauceOpts, 4, (id)=>{ pickSauce(id); });
+
+  // Section 5: Toppings (checkbox multi)
+  renderToppingSection();
+
+  applyFocus();
+  renderVisualizer();
+  updateChips();
+}
+
+function renderRadioSection(elId, opts, sec, onPick){
+  const el = $("#"+elId);
+  const hi = day.hiIndex[sec]||0;
+  let html = "";
+  opts.forEach((o,i)=>{
+    let cls = "opt";
+    if(!o.unlocked) cls+=" locked";
+    else if(o.oos) cls+=" oos";
+    if(o.on) cls+=" on";
+    if(i===hi) cls+=" hi";
+    const mark = o.on? "(*)":"( )";
+    let tag = "";
+    if(!o.unlocked) tag = " <span class='lk-tag'>[LOCKED]</span>";
+    else if(o.oos) tag = " <span class='oos-tag'>[OUT OF STOCK]</span>";
+    html += "<span class='"+cls+"' data-id='"+o.id+"' data-i='"+i+"'><span class='mark'>"+mark+"</span>"+o.label+tag+"</span>";
+  });
+  el.innerHTML = html;
+  el.querySelectorAll(".opt").forEach(node=>{
+    node.addEventListener("click", ()=>{
+      const o = opts[parseInt(node.dataset.i,10)];
+      if(!o.unlocked || o.oos) { sfxBad(); return; }
+      day.hiIndex[sec] = parseInt(node.dataset.i,10);
+      day.focusSec = sec;
+      onPick(node.dataset.id);
+    });
+  });
+}
+
+function renderFlavorSection(){
+  const el = $("#opts-flavor");
+  const b = day.build;
+  const hi = day.hiIndex[3]||0;
+  let html = "";
+  FLAVORS.forEach((f,i)=>{
+    const unlocked = S.unlocked.flavor[f.id];
+    const oos = !invHas("flavor", f.id, 1);
+    const count = b.flavors.filter(x=>x===f.id).length;
+    let cls="opt";
+    if(!unlocked) cls+=" locked";
+    else if(oos && count===0) cls+=" oos";
+    if(count>0) cls+=" on";
+    if(i===hi) cls+=" hi";
+    const mark = count>0 ? "["+count+"]" : "[ ]";
+    let tag="";
+    if(!unlocked) tag=" <span class='lk-tag'>[LOCKED]</span>";
+    else if(oos) tag=" <span class='oos-tag'>[OUT OF STOCK]</span>";
+    html += "<span class='"+cls+"' data-id='"+f.id+"' data-i='"+i+"'><span class='mark'>"+mark+"</span>"+f.name+tag+"</span>";
+  });
+  el.innerHTML = html;
+  el.querySelectorAll(".opt").forEach(node=>{
+    node.addEventListener("click", (e)=>{
+      const id = node.dataset.id;
+      const f = FLAVORS.find(x=>x.id===id);
+      if(!S.unlocked.flavor[id]){ sfxBad(); return; }
+      day.hiIndex[3] = parseInt(node.dataset.i,10);
+      day.focusSec = 3;
+      // left click add, shift/right removes handled separately; plain click = add scoop
+      addFlavorScoop(id);
+    });
+    node.addEventListener("contextmenu",(e)=>{ e.preventDefault(); removeFlavorScoop(node.dataset.id); });
+  });
+  // scoop counter hint
+  const tk = activeTicket();
+  const need = tk? tk.order.flavors.length : 0;
+  const have = b.flavors.length;
+  $("#req-3").textContent = "SCOOPS "+have+(need?("/"+need):"")+" | click=add, right-click=remove";
+}
+
+function renderToppingSection(){
+  const el = $("#opts-topping");
+  const b = day.build;
+  const hi = day.hiIndex[5]||0;
+  let html = "";
+  TOPPINGS.forEach((t,i)=>{
+    const unlocked = S.unlocked.topping[t.id];
+    const oos = !invHas("topping", t.id, 1);
+    const on = b.toppings.includes(t.id);
+    let cls="opt";
+    if(!unlocked) cls+=" locked";
+    else if(oos && !on) cls+=" oos";
+    if(on) cls+=" on";
+    if(i===hi) cls+=" hi";
+    const mark = on? "[X]":"[ ]";
+    let tag="";
+    if(!unlocked) tag=" <span class='lk-tag'>[LOCKED]</span>";
+    else if(oos) tag=" <span class='oos-tag'>[OUT OF STOCK]</span>";
+    html += "<span class='"+cls+"' data-id='"+t.id+"' data-i='"+i+"'><span class='mark'>"+mark+"</span>"+t.name+tag+"</span>";
+  });
+  el.innerHTML = html;
+  el.querySelectorAll(".opt").forEach(node=>{
+    node.addEventListener("click", ()=>{
+      const id = node.dataset.id;
+      if(!S.unlocked.topping[id]){ sfxBad(); return; }
+      day.hiIndex[5] = parseInt(node.dataset.i,10);
+      day.focusSec = 5;
+      toggleTopping(id);
+    });
+  });
+}
+
+function applyFocus(){
+  for(let s=1;s<=5;s++){
+    const sec = $("#sec-"+s);
+    if(sec) sec.classList.toggle("focus", day.focusSec===s);
+  }
+}
+
+/* ------------------------------------------------------------
+   Build actions
+   ------------------------------------------------------------ */
+function requireTicket(){
+  if(!activeTicket()){ toast("NO TICKET","Summon or select a ticket first.","bad"); return false; }
+  return true;
+}
+function pickContainer(id){
+  if(!requireTicket()) return;
+  if(!invHas("container", id, 1)){ toast("OUT OF STOCK", containerName(id)+" containers depleted.","bad"); sfxBad(); return; }
+  day.build.container = id; sfxClick(); renderWorkstation();
+}
+function pickSize(id){
+  if(!requireTicket()) return;
+  if(!S.unlocked.size[id]){ toast("LOCKED","Unlock this size in Procurement.","bad"); return; }
+  day.build.size = id; sfxClick(); renderWorkstation();
+}
+function addFlavorScoop(id){
+  if(!requireTicket()) return;
+  if(!S.unlocked.flavor[id]) return;
+  const have = day.build.flavors.filter(x=>x===id).length;
+  const invRemaining = invQty("flavor", id);
+  if(day.build.flavors.length >= 6){ toast("MAX SCOOPS","Six scoops is the machine limit.","bad"); return; }
+  // check total of this flavor already committed does not exceed stock
+  if(have >= invRemaining){ toast("OUT OF STOCK", flavorName(id)+" stock is "+invRemaining+".","bad"); sfxBad(); return; }
+  day.build.flavors.push(id); sfxClick(); renderWorkstation();
+}
+function removeFlavorScoop(id){
+  const idx = day.build.flavors.lastIndexOf(id);
+  if(idx>=0){ day.build.flavors.splice(idx,1); sfxClick(); renderWorkstation(); }
+}
+function pickSauce(id){
+  if(!requireTicket()) return;
+  if(id!=="none"){
+    if(!S.unlocked.sauce[id]){ toast("LOCKED","Unlock this sauce in Procurement.","bad"); return; }
+    if(!invHas("sauce", id, 1)){ toast("OUT OF STOCK", sauceName(id)+" depleted.","bad"); sfxBad(); return; }
+  }
+  day.build.sauce = id; sfxClick(); renderWorkstation();
+}
+function toggleTopping(id){
+  if(!requireTicket()) return;
+  if(!S.unlocked.topping[id]) return;
+  const arr = day.build.toppings;
+  const i = arr.indexOf(id);
+  if(i>=0){ arr.splice(i,1); }
+  else {
+    if(!invHas("topping", id, 1)){ toast("OUT OF STOCK", toppingName(id)+" depleted.","bad"); sfxBad(); return; }
+    arr.push(id);
+  }
+  sfxClick(); renderWorkstation();
+}
+function clearBuild(){
+  day.build = emptyBuild();
+  sfxNav();
+  renderWorkstation();
+  logMsg("BUILD CLEARED");
+}
+
+/* ------------------------------------------------------------
+   Visualizer (ASCII)
+   ------------------------------------------------------------ */
+function renderVisualizer(){
+  const b = day.build;
+  const el = $("#visualizer");
+  const scoopCount = b.flavors.length;
+  const scoopGlyphs = {vanilla:"o", chocolate:"@", strawberry:"*", mintchip:"%", cookiecream:"#", pistachio:"&", mango:"O", butterpecan:"8"};
+  let art = [];
+  // scoops stacked
+  let scoops = "";
+  for(let i=0;i<scoopCount;i++){
+    const g = scoopGlyphs[b.flavors[i]] || "o";
+    const pad = " ".repeat(Math.max(0, 4 - i));
+    scoops += pad + "("+g+g+g+")\n";
+  }
+  const top = b.toppings.length ? "  ~"+b.toppings.map(t=>toppingName(t)[0]).join("")+"~\n" : "";
+  const sauce = b.sauce!=="none" ? "  ::"+sauceName(b.sauce).slice(0,3).toUpperCase()+"::\n" : "";
+  if(b.container==="cup"){
+    art.push(top+sauce+scoops+"  ______\n  |    |\n  | CUP|\n  |____|");
+  } else if(b.container==="cone"){
+    art.push(top+sauce+scoops+"   \\    /\n    \\  /\n     \\/\n    CONE");
+  } else {
+    art.push(top+sauce+scoops+"  (select container)");
+  }
+  el.innerHTML = "<pre>"+ (scoopCount||b.container? art[0] : "  AWAITING BUILD  ") +"</pre>";
+  const buildParts = [];
+  if(b.container) buildParts.push(containerName(b.container));
+  if(b.size) buildParts.push(sizeName(b.size));
+  buildParts.push(scoopCount+" scoop(s)");
+  $("#viz-status").textContent = buildParts.join(" / ");
+}
+
+/* ------------------------------------------------------------
+   9. SCORING + SERVE
+   ------------------------------------------------------------ */
+function scoreBuild(ticket, build){
+  const o = ticket.order;
+  let fields = 0, matched = 0;
+  const detail = {};
+
+  // container
+  fields++; if(build.container===o.container){ matched++; detail.container=true; } else detail.container=false;
+  // size
+  fields++; if(build.size===o.size){ matched++; detail.size=true; } else detail.size=false;
+  // flavors (order-insensitive multiset)
+  fields++;
+  const fm = multisetEqual(build.flavors, o.flavors);
+  if(fm){ matched++; detail.flavor=true; } else detail.flavor=false;
+  // sauce
+  fields++;
+  if((build.sauce||"none")===(o.sauce||"none")){ matched++; detail.sauce=true; } else detail.sauce=false;
+  // toppings (set)
+  fields++;
+  const tm = setEqual(build.toppings, o.toppings);
+  if(tm){ matched++; detail.toppings=true; } else detail.toppings=false;
+
+  return { accuracy: matched/fields, matched, fields, detail };
+}
+function multisetEqual(a,b){
+  if(a.length!==b.length) return false;
+  const ca={}, cb={};
+  a.forEach(x=>ca[x]=(ca[x]||0)+1);
+  b.forEach(x=>cb[x]=(cb[x]||0)+1);
+  const keys = new Set([...Object.keys(ca),...Object.keys(cb)]);
+  for(const k of keys){ if((ca[k]||0)!==(cb[k]||0)) return false; }
+  return true;
+}
+function setEqual(a,b){
+  if(a.length!==b.length) return false;
+  const sa=new Set(a), sb=new Set(b);
+  if(sa.size!==sb.size) return false;
+  for(const x of sa){ if(!sb.has(x)) return false; }
+  return true;
+}
+
+function dispenseServe(){
+  const t = activeTicket();
+  if(!t){ toast("NO TICKET","Nothing to serve.","bad"); return; }
+  const b = day.build;
+  if(!b.container){ toast("INCOMPLETE","Select a container.","bad"); day.focusSec=1; applyFocus(); return; }
+  if(!b.size){ toast("INCOMPLETE","Select a size.","bad"); day.focusSec=2; applyFocus(); return; }
+  if(b.flavors.length===0){ toast("INCOMPLETE","Add at least one scoop.","bad"); day.focusSec=3; applyFocus(); return; }
+
+  // final stock re-check (defensive)
+  if(!invHas("container", b.container, 1)){ toast("OUT OF STOCK","Container depleted. Restock.","bad"); return; }
+  const flavCount = {};
+  b.flavors.forEach(f=>flavCount[f]=(flavCount[f]||0)+1);
+  for(const f in flavCount){ if(invQty("flavor",f) < flavCount[f]){ toast("OUT OF STOCK", flavorName(f)+" insufficient.","bad"); return; } }
+  if(b.sauce!=="none" && !invHas("sauce", b.sauce,1)){ toast("OUT OF STOCK","Sauce depleted.","bad"); return; }
+  for(const tp of b.toppings){ if(!invHas("topping", tp,1)){ toast("OUT OF STOCK", toppingName(tp)+" depleted.","bad"); return; } }
+
+  // score
+  const res = scoreBuild(t, b);
+  const patienceFrac = clamp(t.p/t.maxP, 0, 1);
+  const speedBonus = patienceFrac; // 0..1
+
+  // deduct inventory
+  invDeduct("container", b.container, 1);
+  for(const f in flavCount){ invDeduct("flavor", f, flavCount[f]); }
+  if(b.sauce!=="none") invDeduct("sauce", b.sauce, 1);
+  b.toppings.forEach(tp=>invDeduct("topping", tp, 1));
+
+  // payout
+  const base = sizePrice(b.size);
+  const complexityBonus = (b.flavors.length-1)*1.5 + b.toppings.length*1.0 + (b.sauce!=="none"?1.5:0);
+  let tip = (base*0.5 + complexityBonus) * res.accuracy * (0.4 + 0.6*speedBonus);
+  tip *= (day.tipMult||1);
+  if(t.bulk){ tip += base*0.8; }
+  let payout = base*res.accuracy + tip;
+  payout = Math.max(0, payout);
+
+  // VIP / inspection: perfect required
+  let vipPenalty = false;
+  if(t.vip && res.accuracy < 0.999){
+    vipPenalty = true;
+    S.csat = clamp(S.csat - 0.8, 0, 5);
+  }
+
+  // apply
+  S.capital += payout;
+  day.revenue += payout;
+  day.completed++;
+  day.accSum += res.accuracy;
+  day.accCount++;
+  const usedTime = (t.maxP - t.p)/1000;
+  day.timeSum += usedTime;
+
+  // efficiency (XP) gain
+  const effGain = Math.round(res.accuracy*10 + speedBonus*6 + t.complexity*2 + (t.vip?8:0) + (t.bulk?6:0));
+  S.efficiency += effGain;
+  checkEffMilestone();
+
+  // csat effect
+  if(res.accuracy>=0.999){ day.servedGood++; S.csat = clamp(S.csat + 0.05, 0, 5); }
+  else if(res.accuracy>=0.6){ S.csat = clamp(S.csat + 0.01, 0, 5); }
+  else { S.csat = clamp(S.csat - 0.2, 0, 5); }
+
+  const accPct = Math.round(res.accuracy*100);
+  let cls = res.accuracy>=0.999?"good":(res.accuracy>=0.6?"":"bad");
+  logMsg("ORDER #"+t.no+" SERVED ("+accPct+"%) +"+money(payout)+" [EFF+"+effGain+"]", cls);
+  if(vipPenalty) logMsg("VIP/INSPECTION #"+t.no+" NOT PERFECT: CSAT PENALTY", "bad");
+
+  sfxServe();
+  if(res.accuracy>=0.999) sfxGood();
+  toast("ORDER SERVED", "#"+t.no+" "+accPct+"% ACC "+money(payout)+(vipPenalty?" (VIP MISS)":""), cls==="bad"?"bad":(cls==="good"?"good":""));
+
+  // remove ticket
+  day.queue = day.queue.filter(x=>x.id!==t.id);
+  day.build = emptyBuild();
+  day.activeId = day.queue.length ? day.queue[0].id : null;
+
+  saveGame();
+  renderQueue();
+  renderWorkstation();
+  renderInventory();
+  updateChips();
+  checkDayEnd();
+}
+
+function checkEffMilestone(){
+  const milestone = Math.floor(S.efficiency/100);
+  if(milestone > S.effMilestone){
+    S.effMilestone = milestone;
+    toast("PERFORMANCE UP", "EMPLOYEE PERFORMANCE INCREASED (LVL "+milestone+")", "good");
+    logMsg("<b>EMPLOYEE PERFORMANCE INCREASED</b> - TIER "+milestone, "good");
+    sfxGood();
+    // small capital reward
+    S.capital += 15;
+  }
+}
+
+/* ------------------------------------------------------------
+   Ticket walkaway (patience expired)
+   ------------------------------------------------------------ */
+function ticketWalkaway(t){
+  day.queue = day.queue.filter(x=>x.id!==t.id);
+  day.lost++;
+  S.csat = clamp(S.csat - (t.vip?0.6:0.35), 0, 5);
+  logMsg("CUSTOMER #"+t.no+" ABANDONED ORDER (PATIENCE 0)", "bad");
+  toast("ORDER LOST","#"+t.no+" walked away. CSAT hit.","bad");
+  sfxBad();
+  if(day.activeId===t.id){
+    day.activeId = day.queue.length? day.queue[0].id : null;
+    day.build = emptyBuild();
+    renderWorkstation();
+  }
+  renderQueue();
+  updateChips();
+  saveGame();
+  checkDayEnd();
+}
+
+/* ------------------------------------------------------------
+   10. GAME LOOP
+   ------------------------------------------------------------ */
+let lastTick = 0;
+let rafId = null;
+function gameLoop(ts){
+  rafId = requestAnimationFrame(gameLoop);
+  if(!day || day.over) { lastTick = ts; return; }
+  if(!lastTick) lastTick = ts;
+  let dt = ts - lastTick;
+  lastTick = ts;
+  if(dt>250) dt = 250; // avoid huge jumps on tab refocus
+  day.elapsed += dt;
+
+  // event window countdown
+  if(day.eventWindow>0){
+    day.eventWindow -= dt;
+    if(day.eventWindow<=0){
+      day.eventWindow=0;
+      if(day.dispenseSlow){ day.dispenseSlow=false; }
+      if(day.tipMult!==1){ day.tipMult=1; }
+      if(day.rushActive){ day.rushActive=false; day.spawnInterval = day.baseSpawnInterval; logMsg("RUSH HOUR ENDED - arrivals normalized"); }
+      logMsg("EVENT WINDOW CLOSED - operations nominal");
+    }
+  }
+
+  // patience decay
+  const assistant = S.upg.assistant||0;
+  const decayMult = 1 - (assistant*0.15);
+  let anyWalk = null;
+  for(let i=day.queue.length-1;i>=0;i--){
+    const t = day.queue[i];
+    t.p -= dt * decayMult;
+    if(t.p<=0){ t.p=0; anyWalk = t; }
+  }
+  if(anyWalk) ticketWalkaway(anyWalk);
+
+  // spawning
+  if(day.spawned < day.totalTickets && day.queue.length < queueCap()){
+    day.spawnTimer += dt;
+    if(day.spawnTimer >= day.spawnInterval){
+      day.spawnTimer = 0;
+      // possibly a pending special ticket
+      if(day.pendingSpecial){
+        const sp = day.pendingSpecial; day.pendingSpecial=null;
+        spawnTicket(sp);
+      } else {
+        spawnTicket({});
+      }
+    }
+  }
+
+  // throttled bar update ~ every 120ms
+  day.barAccum = (day.barAccum||0)+dt;
+  if(day.barAccum>=120){ day.barAccum=0; updateQueueBars(); }
+
+  checkDayEnd();
+}
+
+function checkDayEnd(){
+  if(!day || day.over) return;
+  const done = day.completed + day.lost;
+  if(day.spawned>=day.totalTickets && day.queue.length===0 && done>=day.totalTickets){
+    endDay();
+  }
+}
+
+/* ------------------------------------------------------------
+   START / END DAY
+   ------------------------------------------------------------ */
+function startDay(){
+  day = newDayState();
+  day.baseSpawnInterval = day.spawnInterval;
+  logLines = [];
+  $("#activity-log").innerHTML="";
+  logMsg("SHIFT "+shiftLabel(S.day)+" INITIATED - TARGET "+day.totalTickets+" ORDERS");
+  updateChips();
+  renderInventory();
+  renderQueue();
+  renderWorkstation();
+  // roll a random event (not every day)
+  maybeTriggerEvent();
+  // seed first tickets quickly
+  day.spawnTimer = day.spawnInterval - 800;
+  saveGame();
+}
+
+function endDay(){
+  if(day.over) return;
+  day.over = true;
+  // rent expense
+  const rent = 50 + (S.day-1)*6;
+  S.capital -= rent;
+  day.expenses += rent;
+  logMsg("END OF SHIFT - RENT POSTED "+money(rent), "bad");
+
+  const avgAcc = day.accCount? (day.accSum/day.accCount) : 0;
+  const avgTime = day.accCount? (day.timeSum/day.accCount) : 0;
+  const net = day.revenue - day.expenses;
+
+  const record = {
+    day: S.day,
+    shift: shiftLabel(S.day),
+    revenue: day.revenue,
+    expenses: day.expenses,
+    rent: rent,
+    net: net,
+    completed: day.completed,
+    good: day.servedGood,
+    lost: day.lost,
+    total: day.totalTickets,
+    avgAcc: avgAcc,
+    avgTime: avgTime,
+    csat: S.csat,
+    eff: S.efficiency,
+    hourly: buildHourlySamples()
+  };
+  S.history.push(record);
+  if(S.history.length>60) S.history.shift();
+
+  logMsg("<b>SHIFT REPORT READY</b> - NET "+money(net), net>=0?"good":"bad");
+  toast("SHIFT COMPLETE", "NET "+money(net)+" | CSAT "+S.csat.toFixed(1), net>=0?"good":"bad");
+  sfxEvent();
+
+  saveGame();
+  renderReport();
+  switchView("report");
+  updateChips();
+}
+
+function buildHourlySamples(){
+  // synthesize an hourly satisfaction curve for the chart from completions
+  const hours = 8;
+  const arr = [];
+  const base = S.csat;
+  for(let h=0;h<hours;h++){
+    const jitter = (Math.sin(h*1.3 + S.day)*0.5);
+    arr.push(clamp(base + jitter + (Math.random()*0.4-0.2), 0, 5));
+  }
+  return arr;
+}
+
+function beginNextShift(){
+  S.day++;
+  startDay();
+  switchView("ops");
+  updateChips();
+  saveGame();
+}
+
+/* ------------------------------------------------------------
+   11. RANDOM EVENTS
+   ------------------------------------------------------------ */
+const EVENTS = [
+  {
+    id:"supplier_delay", title:"SUPPLIER DELAY", office:"LOGISTICS ADVISORY",
+    desc:"A key consumable arrived short this shift. One ingredient starts critically low.",
+    apply(){
+      // pick a random unlocked consumable and slash its stock
+      const pool = [];
+      FLAVORS.filter(f=>S.unlocked.flavor[f.id]).forEach(f=>pool.push(["flavor",f.id,f.name]));
+      SAUCES.filter(s=>S.unlocked.sauce[s.id]).forEach(s=>pool.push(["sauce",s.id,s.name]));
+      TOPPINGS.filter(t=>S.unlocked.topping[t.id]).forEach(t=>pool.push(["topping",t.id,t.name]));
+      if(!pool.length) return "No supply lines affected.";
+      const p = pick(pool);
+      const k = invKey(p[0], p[1]);
+      S.inv[k] = Math.min(S.inv[k]||0, 3);
+      renderInventory();
+      return p[2]+" stock reduced to "+(S.inv[k])+". Restock via Procurement if needed.";
+    }
+  },
+  {
+    id:"rush_hour", title:"RUSH HOUR", office:"THROUGHPUT ALERT",
+    desc:"Foot traffic spike detected. Extra orders and faster arrivals for a window.",
+    apply(){
+      day.totalTickets += 3;
+      day.rushActive = true;
+      day.spawnInterval = Math.max(1600, day.baseSpawnInterval*0.5);
+      day.eventWindow = 45000;
+      return "Target orders +3, arrival interval halved for 45s.";
+    }
+  },
+  {
+    id:"happy_hour", title:"HAPPY HOUR", office:"REVENUE OPTIMIZATION",
+    desc:"Promotional window active. Customer tips are elevated.",
+    apply(){
+      day.tipMult = 1.8;
+      day.eventWindow = 60000;
+      return "Tips x1.8 for 60 seconds. Prioritize speed and accuracy.";
+    }
+  },
+  {
+    id:"inspection", title:"HEALTH INSPECTION / VIP", office:"COMPLIANCE FLAG",
+    desc:"A flagged ticket will arrive. It must be built PERFECTLY or satisfaction takes a hit.",
+    apply(){
+      day.pendingSpecial = {vip:true};
+      return "One VIP/inspection ticket queued. 100% accuracy required.";
+    }
+  },
+  {
+    id:"equipment", title:"EQUIPMENT CLEANING CYCLE", office:"MAINTENANCE NOTICE",
+    desc:"Dispensing hardware runs a cleaning cycle. Serving feels slower for a window.",
+    apply(){
+      day.dispenseSlow = true;
+      day.eventWindow = 40000;
+      return "Dispensing throughput reduced for 40s (patience matters more).";
+    }
+  },
+  {
+    id:"bulk_order", title:"BULK OFFICE ORDER", office:"CORPORATE CATERING",
+    desc:"A large multi-scoop order is inbound. Higher payout, watch your stock.",
+    apply(){
+      day.pendingSpecial = {bulk:true};
+      return "One large order queued. Extra scoops, extra revenue.";
+    }
+  },
+  {
+    id:"bonus", title:"EMPLOYEE BONUS DAY", office:"PAYROLL MEMO",
+    desc:"Management issued a small performance bonus to the station.",
+    apply(){
+      const bonus = 25 + rand(20);
+      S.capital += bonus;
+      updateChips();
+      return "Capital bonus of "+money(bonus)+" credited.";
+    }
+  }
+];
+
+function maybeTriggerEvent(){
+  // 55% chance of an event, higher on later days
+  const chance = clamp(0.4 + S.day*0.03, 0.4, 0.8);
+  if(Math.random() > chance){ logMsg("NO OPERATIONAL EVENTS THIS SHIFT"); return; }
+  const ev = pick(EVENTS);
+  const detail = ev.apply();
+  day.event = ev.id;
+  logMsg("EVENT: "+ev.title, "bad");
+  showEventModal(ev, detail);
+  sfxEvent();
+}
+
+function showEventModal(ev, detail){
+  $("#modal").classList.add("event-modal");
+  $("#modal-title").textContent = ev.title;
+  $("#modal-body").innerHTML =
+    "<div class='event-icon'>[!] "+ev.office+"</div>"+
+    "<p>"+ev.desc+"</p>"+
+    "<p class='muted'>"+detail+"</p>"+
+    "<div class='btn-row'><button class='btn primary wide' id='ev-ok'>[[ ACKNOWLEDGE ]]</button></div>";
+  openOverlay();
+  $("#ev-ok").addEventListener("click", ()=>{ closeOverlay(); });
+}
+
+/* ------------------------------------------------------------
+   12. PROCUREMENT RENDER + BUY
+   ------------------------------------------------------------ */
+function renderProcurement(){
+  updateChips();
+  // RESTOCK table
+  let r = "<div class='proc-sec-h'>(A) RESTOCK CONSUMABLES</div>";
+  r += "<table class='grid'><thead><tr><th>ASSET CODE</th><th>DESCRIPTION</th><th class='num'>ON HAND</th><th class='num'>PACK (+UNITS)</th><th class='num'>COST</th><th>ACTION</th></tr></thead><tbody>";
+  Object.keys(RESTOCK).forEach(k=>{
+    const item = RESTOCK[k];
+    const unlocked = item.kind==="container"? true : isRefUnlocked(item.kind, item.ref);
+    if(!unlocked) return; // hide locked consumables from restock (unlock first)
+    const q = S.inv[k]||0;
+    const full = q >= item.cap;
+    const afford = S.capital >= item.packCost;
+    let btn;
+    if(full) btn = "<button class='buybtn owned' disabled>[FULL]</button>";
+    else if(!afford) btn = "<button class='buybtn no' disabled>[INSUFFICIENT]</button>";
+    else btn = "<button class='buybtn' data-restock='"+k+"'>[PURCHASE]</button>";
+    r += "<tr><td class='code'>"+item.code+"</td><td>"+item.label+"</td>"+
+      "<td class='num"+(q<=item.cap*0.2?" err":"")+"'>"+q+"/"+item.cap+"</td>"+
+      "<td class='num'>+"+item.packUnits+"</td>"+
+      "<td class='num'>"+money(item.packCost)+"</td><td>"+btn+"</td></tr>";
+  });
+  r += "</tbody></table>";
+  $("#proc-restock").innerHTML = r;
+
+  // UPGRADES table
+  let u = "<div class='proc-sec-h'>(B) UPGRADES / ASSET UNLOCKS</div>";
+  u += "<table class='grid'><thead><tr><th>ASSET CODE</th><th>DESCRIPTION</th><th class='num'>STATUS</th><th class='num'>COST</th><th>ACTION</th></tr></thead><tbody>";
+  UPGRADES.forEach(up=>{
+    const st = upgradeStatus(up);
+    if(st.hidden) return;
+    let btn;
+    if(st.owned){ btn = "<button class='buybtn owned' disabled>[IN STOCK]</button>"; }
+    else if(!st.available){ btn = "<button class='buybtn owned' disabled>[LOCKED]</button>"; }
+    else if(S.capital < up.cost){ btn = "<button class='buybtn no' disabled>[INSUFFICIENT]</button>"; }
+    else { btn = "<button class='buybtn' data-upg='"+up.id+"'>[PURCHASE]</button>"; }
+    u += "<tr><td class='code'>"+up.code+"</td><td>"+up.desc+"</td>"+
+      "<td class='num'>"+st.label+"</td><td class='num'>"+money(up.cost)+"</td><td>"+btn+"</td></tr>";
+  });
+  u += "</tbody></table>";
+  $("#proc-upgrades").innerHTML = u;
+
+  // wire buttons
+  $$("#proc-restock [data-restock]").forEach(b=>b.addEventListener("click",()=>buyRestock(b.dataset.restock)));
+  $$("#proc-upgrades [data-upg]").forEach(b=>b.addEventListener("click",()=>buyUpgrade(b.dataset.upg)));
+}
+
+function upgradeStatus(up){
+  // repeatable upgrades track a level; unlock upgrades set flags
+  if(up.repeatable){
+    const lvl = S.upg[up.id]||0;
+    return { owned: lvl>=up.maxLevel, available:true, label:"LVL "+lvl+"/"+up.maxLevel, hidden:false };
+  }
+  if(up.id==="dispense_fast"){
+    return { owned:S.upg.dispense_fast, available:true, label:S.upg.dispense_fast?"OWNED":"AVAIL", hidden:false };
+  }
+  if(up.id.startsWith("size_")){
+    const id = up.id==="size_medium"?"medium":"large";
+    const owned = S.unlocked.size[id];
+    let available = true;
+    if(up.req){ available = S.unlocked.size["medium"]; }
+    return { owned, available, label:owned?"OWNED":(available?"AVAIL":"REQ M"), hidden:false };
+  }
+  if(up.id.startsWith("flv_")){
+    const id = up.id.slice(4);
+    const owned = S.unlocked.flavor[id];
+    return { owned, available:true, label:owned?"OWNED":"AVAIL", hidden:false };
+  }
+  if(up.id.startsWith("sce_")){
+    const id = up.id.slice(4);
+    const owned = S.unlocked.sauce[id];
+    return { owned, available:true, label:owned?"OWNED":"AVAIL", hidden:false };
+  }
+  if(up.id.startsWith("top_")){
+    const id = up.id.slice(4);
+    const owned = S.unlocked.topping[id];
+    return { owned, available:true, label:owned?"OWNED":"AVAIL", hidden:false };
+  }
+  return { owned:false, available:true, label:"AVAIL", hidden:false };
+}
+
+function buyRestock(k){
+  const item = RESTOCK[k];
+  if(!item) return;
+  if(S.capital < item.packCost){ toast("INSUFFICIENT","Not enough capital.","bad"); sfxBad(); return; }
+  const q = S.inv[k]||0;
+  if(q>=item.cap){ toast("FULL","Storage is at capacity.","bad"); return; }
+  S.capital -= item.packCost;
+  S.inv[k] = Math.min(item.cap, q + item.packUnits);
+  if(day && !day.over) day.expenses += item.packCost;
+  sfxClick();
+  logMsg("PROCUREMENT: "+item.code+" +"+item.packUnits+" (-"+money(item.packCost)+")");
+  renderProcurement();
+  renderInventory();
+  updateChips();
+  saveGame();
+}
+
+function buyUpgrade(id){
+  const up = UPGRADES.find(x=>x.id===id);
+  if(!up) return;
+  const st = upgradeStatus(up);
+  if(st.owned || !st.available){ return; }
+  if(S.capital < up.cost){ toast("INSUFFICIENT","Not enough capital.","bad"); sfxBad(); return; }
+  S.capital -= up.cost;
+  if(day && !day.over) day.expenses += up.cost;
+
+  // apply effect
+  if(up.repeatable){
+    S.upg[up.id] = (S.upg[up.id]||0)+1;
+  } else if(up.id==="dispense_fast"){
+    S.upg.dispense_fast = true;
+  } else if(up.id==="size_medium"){ S.unlocked.size.medium=true; ensureStock("size"); }
+  else if(up.id==="size_large"){ S.unlocked.size.large=true; }
+  else if(up.id.startsWith("flv_")){ const f=up.id.slice(4); S.unlocked.flavor[f]=true; seedNewStock("flavor",f); }
+  else if(up.id.startsWith("sce_")){ const s=up.id.slice(4); S.unlocked.sauce[s]=true; seedNewStock("sauce",s); }
+  else if(up.id.startsWith("top_")){ const t=up.id.slice(4); S.unlocked.topping[t]=true; seedNewStock("topping",t); }
+
+  sfxGood();
+  logMsg("UPGRADE ACQUIRED: "+up.code+" (-"+money(up.cost)+")", "good");
+  toast("ASSET UNLOCKED", up.desc.split(":")[0], "good");
+  renderProcurement();
+  renderInventory();
+  if(day) renderWorkstation();
+  updateChips();
+  saveGame();
+}
+function seedNewStock(kind, ref){
+  // give a starter pack when unlocking so it is immediately usable
+  const k = invKey(kind, ref);
+  const item = RESTOCK[k];
+  if(item && (S.inv[k]||0)===0){ S.inv[k] = Math.round(item.cap*0.5); }
+}
+function ensureStock(){ /* sizes have no stock; placeholder */ }
+
+/* ------------------------------------------------------------
+   13. REPORT RENDER
+   ------------------------------------------------------------ */
+function renderReport(){
+  const el = $("#report-body");
+  const rec = S.history.length? S.history[S.history.length-1] : null;
+  const sid = "ALPHA-"+(2400+S.day*7)+"-Q"+((S.day%4)+1);
+  const line = "="+"".padEnd(58,"=");
+  const banner =
+    "+"+"=".repeat(60)+"+\n"+
+    "|  CONFIDENTIAL: SHIFT PERFORMANCE REPORT - SESSION ID #"+sid.padEnd(6," ").slice(0,8)+" |\n"+
+    "+"+"=".repeat(60)+"+";
+
+  if(!rec){
+    el.innerHTML = "<div class='banner'>"+banner+"</div><p class='muted'>No completed shifts yet. Serve orders in the OPERATIONS TERMINAL, then complete the shift to generate a report.</p>";
+    return;
+  }
+
+  const kpis = [
+    {k:"TOTAL REVENUE", v:money(rec.revenue), c:"pos"},
+    {k:"TOTAL EXPENSES", v:money(rec.expenses), c:"neg"},
+    {k:"NET PROFIT", v:money(rec.net), c: rec.net>=0?"pos":"neg"},
+    {k:"ORDERS COMPLETED", v:rec.completed+" / "+rec.total, c:""},
+    {k:"AVG COMPLETION TIME", v:rec.avgTime.toFixed(1)+"s", c:""},
+    {k:"ACCURACY", v:Math.round(rec.avgAcc*100)+"%", c: rec.avgAcc>=0.8?"pos":(rec.avgAcc>=0.5?"":"neg")},
+    {k:"OPERATIONAL EFFICIENCY", v:Math.round(rec.eff), c:""},
+    {k:"CUSTOMER SATISFACTION", v:stars(rec.csat)+" "+rec.csat.toFixed(1), c:""}
+  ];
+  let kpiHtml = "<div class='kpi-grid'>";
+  kpis.forEach(x=>{ kpiHtml += "<div class='kpi'><div class='k'>"+x.k+"</div><div class='v "+x.c+"'>"+x.v+"</div></div>"; });
+  kpiHtml += "</div>";
+
+  // hourly satisfaction ASCII bar chart
+  let chart = "HOURLY CUSTOMER SATISFACTION (0-5)\n\n";
+  rec.hourly.forEach((v,i)=>{
+    const bars = Math.round(v/5*24);
+    const h = String(9+i).padStart(2,"0")+":00";
+    chart += h+" |"+"#".repeat(bars)+" ".repeat(24-bars)+"| "+v.toFixed(1)+"\n";
+  });
+
+  // history table
+  let hist = "<div class='panel'><div class='panel-h'>SHIFT HISTORY LEDGER <span class='sub'>ALL SESSIONS</span></div><div class='panel-b'>"+
+    "<table class='grid'><thead><tr><th>SHIFT</th><th>CODE</th><th class='num'>REVENUE</th><th class='num'>EXPENSES</th><th class='num'>NET</th><th class='num'>ORDERS</th><th class='num'>ACC</th><th class='num'>CSAT</th></tr></thead><tbody>";
+  S.history.slice().reverse().forEach(h=>{
+    hist += "<tr><td>"+h.day+"</td><td class='code'>"+h.shift+"</td>"+
+      "<td class='num'>"+money(h.revenue)+"</td><td class='num'>"+money(h.expenses)+"</td>"+
+      "<td class='num "+(h.net>=0?"ok":"err")+"'>"+money(h.net)+"</td>"+
+      "<td class='num'>"+h.completed+"/"+h.total+"</td>"+
+      "<td class='num'>"+Math.round(h.avgAcc*100)+"%</td>"+
+      "<td class='num'>"+h.csat.toFixed(1)+"</td></tr>";
+  });
+  hist += "</tbody></table></div></div>";
+
+  el.innerHTML =
+    "<div class='banner'>"+banner+"</div>"+
+    kpiHtml+
+    "<div class='panel'><div class='panel-h'>SATISFACTION TREND</div><div class='panel-b'><div class='chart'>"+chart+"</div></div></div>"+
+    "<div class='btn-row' style='margin:10px 0;'><button class='btn primary' id='btn-next-shift'>[[ BEGIN NEXT SHIFT ]]</button>"+
+    "<button class='btn' id='btn-view-ops'>[ RETURN TO OPS ]</button></div>"+
+    hist;
+
+  $("#btn-next-shift").addEventListener("click", ()=>{ sfxNav(); beginNextShift(); });
+  $("#btn-view-ops").addEventListener("click", ()=>{ sfxNav(); switchView("ops"); });
+}
+
+/* ------------------------------------------------------------
+   14. VIEW SWITCHING
+   ------------------------------------------------------------ */
+function switchView(v){
+  $$(".view").forEach(x=>x.classList.remove("active"));
+  $("#view-"+v).classList.add("active");
+  $$("#nav button").forEach(b=>b.classList.toggle("active", b.dataset.view===v));
+  if(v==="proc") renderProcurement();
+  if(v==="report") renderReport();
+  if(v==="ops"){ renderQueue(); renderWorkstation(); renderInventory(); }
+}
+
+/* ------------------------------------------------------------
+   15. OVERLAYS (modal + help)
+   ------------------------------------------------------------ */
+function openOverlay(){ $("#overlay").classList.add("on"); }
+function closeOverlay(){
+  $("#overlay").classList.remove("on");
+  $("#modal").classList.remove("event-modal");
+}
+function showHelp(){
+  $("#modal-title").textContent = "HELP / HOTKEY REFERENCE";
+  $("#modal-body").innerHTML =
+    "<h4>OVERVIEW</h4>"+
+    "<p class='muted'>FROSTOPS ERP is a shift-based operations terminal. Summon a work order, build it in the WORKSTATION to match the request, then DISPENSE. Accuracy and speed drive revenue and customer satisfaction. Restock and unlock assets in the PROCUREMENT PORTAL. Rent is charged at the end of each shift.</p>"+
+    "<h4>HOTKEYS</h4>"+
+    "<div class='help-grid'>"+
+    "<kbd>O</kbd><span>Operations terminal view</span>"+
+    "<kbd>P</kbd><span>Procurement portal view</span>"+
+    "<kbd>R</kbd><span>Shift reports view</span>"+
+    "<kbd>N</kbd><span>Summon next / select next ticket</span>"+
+    "<kbd>1-5</kbd><span>Focus workstation section</span>"+
+    "<kbd>Tab</kbd><span>Cycle workstation sections</span>"+
+    "<kbd>Up / Down</kbd><span>Move highlight within focused section</span>"+
+    "<kbd>Space / Enter</kbd><span>Toggle / confirm the highlighted option</span>"+
+    "<kbd>Enter</kbd><span>(build ready) DISPENSE / SERVE</span>"+
+    "<kbd>C</kbd><span>Clear current build</span>"+
+    "<kbd>Right-click flavor</kbd><span>Remove one scoop of that flavor</span>"+
+    "<kbd>Alt+B</kbd><span>Boss key (spreadsheet cover)</span>"+
+    "<kbd>Esc</kbd><span>Close overlay / boss key</span>"+
+    "<kbd>M</kbd><span>Mute audio</span>"+
+    "<kbd>L</kbd><span>Toggle light / dark theme</span>"+
+    "<kbd>?</kbd><span>This help panel</span>"+
+    "</div>"+
+    "<h4>SAVE</h4>"+
+    "<p class='muted'>Progress autosaves after serves, purchases, and each completed shift.</p>"+
+    "<div class='btn-row'><button class='btn danger' id='btn-reset'>[ NEW SHIFT FILE (RESET) ]</button>"+
+    "<button class='btn primary' id='btn-help-close' style='flex:1;'>[[ CLOSE ]]</button></div>";
+  openOverlay();
+  $("#btn-help-close").addEventListener("click", closeOverlay);
+  $("#btn-reset").addEventListener("click", confirmReset);
+}
+function confirmReset(){
+  $("#modal-title").textContent = "CONFIRM: NEW SHIFT FILE";
+  $("#modal-body").innerHTML =
+    "<p class='err'>This wipes all progress: capital, unlocks, inventory, and shift history.</p>"+
+    "<p class='muted'>This cannot be undone.</p>"+
+    "<div class='btn-row'><button class='btn danger' id='btn-reset-yes'>[[ CONFIRM RESET ]]</button>"+
+    "<button class='btn' id='btn-reset-no' style='flex:1;'>[ CANCEL ]</button></div>";
+  $("#btn-reset-yes").addEventListener("click", ()=>{
+    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+    S = defaultState();
+    applyTheme();
+    applyMute();
+    startDay();
+    switchView("ops");
+    closeOverlay();
+    toast("NEW FILE","Fresh shift file created.","good");
+  });
+  $("#btn-reset-no").addEventListener("click", closeOverlay);
+}
+
+/* ------------------------------------------------------------
+   16. BOSS KEY (spreadsheet cover)
+   ------------------------------------------------------------ */
+let bossBuilt = false;
+let bossOn = false;
+function buildBoss(){
+  if(bossBuilt) return;
+  const cols = ["A","B","C","D","E","F","G"];
+  const headers = ["REPORT_ID","STATUS","COST_CENTER","Q3_PROJECTION","ACTUAL_SPEND","VARIANCE","OWNER"];
+  const centers = ["CC-1004","CC-2210","CC-3390","CC-1188","CC-4501","CC-7720","CC-6012","CC-9931","CC-1550","CC-8843","CC-2077","CC-3301","CC-5566"];
+  const owners = ["A.SANTOS","M.REYES","J.CRUZ","L.TAN","R.GARCIA","P.LIM","C.YU","D.ONG","S.DELA CRUZ","V.NAVARRO","F.AQUINO","G.MENDOZA","B.RAMOS"];
+  const statuses = ["APPROVED","PENDING","IN REVIEW","CLOSED","APPROVED","ESCALATED","PENDING"];
+  let rows = "";
+  // header row of column letters
+  let head = "<tr><th></th>";
+  cols.forEach(c=>head+="<th>"+c+"</th>");
+  head += "</tr>";
+  // field-label row
+  let labelRow = "<tr><td class='rownum'>1</td>";
+  headers.forEach(h=>labelRow+="<td><b>"+h+"</b></td>");
+  labelRow += "</tr>";
+  rows += labelRow;
+  let totalProj=0, totalAct=0;
+  for(let i=0;i<13;i++){
+    const proj = 12000 + rand(90000);
+    const act = Math.round(proj*(0.7+Math.random()*0.6));
+    const varc = act-proj;
+    totalProj+=proj; totalAct+=act;
+    const rid = "RPT-"+(48210+i*7);
+    rows += "<tr><td class='rownum'>"+(i+2)+"</td>"+
+      "<td data-c='A"+(i+2)+"'>"+rid+"</td>"+
+      "<td data-c='B"+(i+2)+"'>"+statuses[i%statuses.length]+"</td>"+
+      "<td data-c='C"+(i+2)+"'>"+centers[i%centers.length]+"</td>"+
+      "<td class='n' data-c='D"+(i+2)+"'>"+proj.toLocaleString()+"</td>"+
+      "<td class='n' data-c='E"+(i+2)+"'>"+act.toLocaleString()+"</td>"+
+      "<td class='n "+(varc<0?"neg":"")+"' data-c='F"+(i+2)+"'>"+varc.toLocaleString()+"</td>"+
+      "<td data-c='G"+(i+2)+"'>"+owners[i%owners.length]+"</td></tr>";
+  }
+  // totals row
+  rows += "<tr><td class='rownum'>15</td><td><b>TOTAL</b></td><td></td><td></td>"+
+    "<td class='n'><b>"+totalProj.toLocaleString()+"</b></td>"+
+    "<td class='n'><b>"+totalAct.toLocaleString()+"</b></td>"+
+    "<td class='n "+((totalAct-totalProj)<0?"neg":"")+"'><b>"+(totalAct-totalProj).toLocaleString()+"</b></td><td></td></tr>";
+  // extra empty rows for realism
+  for(let i=16;i<=26;i++){
+    let empt = "<tr><td class='rownum'>"+i+"</td>";
+    cols.forEach(c=>empt+="<td data-c='"+c+i+"'></td>");
+    empt += "</tr>";
+    rows += empt;
+  }
+  $("#boss-table").innerHTML = head + rows;
+  // cell selection
+  $("#boss-table").addEventListener("click",(e)=>{
+    const td = e.target.closest("td[data-c]");
+    if(!td) return;
+    $$("#boss-table td.sel").forEach(x=>x.classList.remove("sel"));
+    td.classList.add("sel");
+    $("#boss-ref").textContent = td.dataset.c;
+    const val = td.textContent.trim();
+    $("#boss-formula").textContent = val ? val : "=IF(ISBLANK("+td.dataset.c+"),0,"+td.dataset.c+")";
+  });
+  bossBuilt = true;
+}
+function toggleBoss(){
+  buildBoss();
+  bossOn = !bossOn;
+  $("#boss").classList.toggle("on", bossOn);
+  if(bossOn){ document.title = "PROJECT_ALPHA_DATA_VIEWER - Book1"; }
+  else { document.title = "FROSTOPS ERP v1.0.4"; }
+}
+
+/* ------------------------------------------------------------
+   17. THEME + MUTE
+   ------------------------------------------------------------ */
+function applyTheme(){
+  document.documentElement.setAttribute("data-theme", S.theme==="dark"?"dark":"light");
+}
+function toggleTheme(){
+  S.theme = S.theme==="dark"?"light":"dark";
+  applyTheme(); saveGame(); sfxNav();
+  toast("DISPLAY", "THEME: "+S.theme.toUpperCase(), "");
+}
+function applyMute(){
+  $("#tb-mute").textContent = "[M] AUDIO:"+(S.muted?"OFF":"ON");
+}
+function toggleMute(){
+  S.muted = !S.muted;
+  applyMute(); saveGame();
+  if(!S.muted) sfxNav();
+}
+
+/* ------------------------------------------------------------
+   18. KEYBOARD INPUT
+   ------------------------------------------------------------ */
+function sectionOptionList(sec){
+  // returns array of {id, enabled} in display order for arrow nav
+  if(sec===1) return CONTAINERS.map(c=>({id:c.id, enabled:invHas("container",c.id,1)}));
+  if(sec===2) return SIZES.map(s=>({id:s.id, enabled:S.unlocked.size[s.id]}));
+  if(sec===3) return FLAVORS.map(f=>({id:f.id, enabled:S.unlocked.flavor[f.id] && invHas("flavor",f.id,1)}));
+  if(sec===4) return [{id:"none",enabled:true}].concat(SAUCES.map(s=>({id:s.id, enabled:S.unlocked.sauce[s.id] && invHas("sauce",s.id,1)})));
+  if(sec===5) return TOPPINGS.map(t=>({id:t.id, enabled:S.unlocked.topping[t.id]}));
+  return [];
+}
+function moveHighlight(sec, dir){
+  const list = sectionOptionList(sec);
+  if(!list.length) return;
+  let i = day.hiIndex[sec]||0;
+  i = clamp(i+dir, 0, list.length-1);
+  day.hiIndex[sec]=i;
+  day.focusSec=sec;
+  renderWorkstation();
+}
+function activateHighlight(sec){
+  const list = sectionOptionList(sec);
+  const i = day.hiIndex[sec]||0;
+  const opt = list[i];
+  if(!opt) return;
+  if(sec===1) pickContainer(opt.id);
+  else if(sec===2) pickSize(opt.id);
+  else if(sec===3) addFlavorScoop(opt.id);
+  else if(sec===4) pickSauce(opt.id);
+  else if(sec===5) toggleTopping(opt.id);
+}
+
+document.addEventListener("keydown", (e)=>{
+  initAudio();
+  // Boss key toggle works anywhere
+  if(e.altKey && (e.key==="b" || e.key==="B")){ e.preventDefault(); toggleBoss(); return; }
+  if(bossOn){
+    if(e.key==="Escape"){ e.preventDefault(); toggleBoss(); }
+    return; // swallow other keys while boss cover is up
+  }
+  // Overlay open: only Esc closes
+  if($("#overlay").classList.contains("on")){
+    if(e.key==="Escape"){ e.preventDefault(); closeOverlay(); }
+    return;
+  }
+  // Ignore if typing in an input (none currently, but safe)
+  const tag = (e.target.tagName||"").toLowerCase();
+  if(tag==="input"||tag==="textarea") return;
+
+  const k = e.key;
+  switch(k){
+    case "Escape": closeOverlay(); break;
+    case "o": case "O": switchView("ops"); sfxNav(); break;
+    case "p": case "P": switchView("proc"); sfxNav(); break;
+    case "r": case "R": switchView("report"); sfxNav(); break;
+    case "m": case "M": toggleMute(); break;
+    case "l": case "L": toggleTheme(); break;
+    case "?": showHelp(); break;
+    case "c": case "C":
+      if(currentView()==="ops"){ clearBuild(); }
+      break;
+    case "n": case "N":
+      if(currentView()==="ops"){ handleSummon(); }
+      break;
+    case "Tab":
+      if(currentView()==="ops"){ e.preventDefault(); cycleSection(e.shiftKey?-1:1); }
+      break;
+    case "1": case "2": case "3": case "4": case "5":
+      if(currentView()==="ops"){ day.focusSec=parseInt(k,10); applyFocus(); scrollToSection(day.focusSec); sfxClick(); }
+      break;
+    case "ArrowUp":
+      if(currentView()==="ops"){ e.preventDefault(); moveHighlight(day.focusSec,-1); sfxClick(); }
+      break;
+    case "ArrowDown":
+      if(currentView()==="ops"){ e.preventDefault(); moveHighlight(day.focusSec,1); sfxClick(); }
+      break;
+    case " ":
+      if(currentView()==="ops"){ e.preventDefault(); activateHighlight(day.focusSec); }
+      break;
+    case "Enter":
+      if(currentView()==="ops"){
+        // Enter serves if build has essentials, else activates highlight
+        const b = day.build;
+        if(b.container && b.size && b.flavors.length){ dispenseServe(); }
+        else { activateHighlight(day.focusSec); }
+      } else if(currentView()==="report"){
+        beginNextShift();
+      }
+      break;
+  }
+});
+
+function currentView(){
+  const el = $$(".view").find(v=>v.classList.contains("active"));
+  if(!el) return "ops";
+  return el.id.replace("view-","");
+}
+function cycleSection(dir){
+  day.focusSec = ((day.focusSec-1+dir+5)%5)+1;
+  applyFocus(); scrollToSection(day.focusSec); sfxNav();
+}
+function scrollToSection(sec){
+  const el = $("#sec-"+sec);
+  if(el) el.scrollIntoView({block:"nearest"});
+}
+function handleSummon(){
+  if(!day || day.over) return;
+  // If unspawned tickets remain and queue has room, force a spawn; else cycle selection
+  if(day.spawned < day.totalTickets && day.queue.length < queueCap()){
+    if(day.pendingSpecial){ const sp=day.pendingSpecial; day.pendingSpecial=null; spawnTicket(sp); }
+    else spawnTicket({});
+    day.spawnTimer = 0;
+  } else if(day.queue.length){
+    // cycle selection to next ticket
+    const idx = day.queue.findIndex(t=>t.id===day.activeId);
+    const next = day.queue[(idx+1)%day.queue.length];
+    selectTicket(next.id);
+    sfxNav();
+  } else {
+    toast("QUEUE EMPTY", "No more orders can be summoned this shift.","");
+  }
+}
+
+/* ------------------------------------------------------------
+   19. TOP BAR / NAV BUTTON WIRING
+   ------------------------------------------------------------ */
+$$("#nav button").forEach(b=>{
+  b.addEventListener("click", ()=>{ switchView(b.dataset.view); sfxNav(); });
+});
+$("#btn-summon").addEventListener("click", ()=>{ initAudio(); handleSummon(); });
+$("#btn-clear").addEventListener("click", ()=>{ initAudio(); if(day) clearBuild(); });
+$("#btn-dispense").addEventListener("click", ()=>{ initAudio(); if(day) dispenseServe(); });
+$("#tb-theme").addEventListener("click", ()=>{ initAudio(); toggleTheme(); });
+$("#tb-mute").addEventListener("click", ()=>{ initAudio(); toggleMute(); });
+$("#tb-help").addEventListener("click", ()=>{ initAudio(); showHelp(); });
+$("#modal-x").addEventListener("click", closeOverlay);
+$("#overlay").addEventListener("click",(e)=>{ if(e.target.id==="overlay") closeOverlay(); });
+
+/* ------------------------------------------------------------
+   20. CLOCKS
+   ------------------------------------------------------------ */
+function tickClock(){
+  const c = nowClock();
+  $("#tb-clock").textContent = c;
+  $("#ft-clock").textContent = c;
+  // fake latency wander
+  const lat = 8 + rand(22);
+  $("#ft-lat").textContent = "LATENCY: "+lat+"ms";
+}
+setInterval(tickClock, 1000);
+
+/* ------------------------------------------------------------
+   21. BOOT
+   ------------------------------------------------------------ */
+function boot(){
+  const loaded = loadGame();
+  applyTheme();
+  applyMute();
+  tickClock();
+  startDay();     // begins a fresh shift for current S.day
+  switchView("ops");
+  updateChips();
+  logMsg("SYSTEM ONLINE - "+(loaded?"SAVE FILE RESTORED":"NEW SHIFT FILE"));
+  if(!loaded){
+    toast("WELCOME","FROSTOPS ERP ready. Press [?] for help.","");
+  }
+  requestAnimationFrame(gameLoop);
+}
+boot();
+</script>
+</body>
+</html>
